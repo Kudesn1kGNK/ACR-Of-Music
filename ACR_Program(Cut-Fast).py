@@ -3,7 +3,6 @@
 import json,time,base64,hashlib,hmac,os,requests,pyaudio,wave,os.path,subprocess
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 from moviepy.editor import *
-from PyQt6 import QtGui
 import webbrowser
 import winsound
 from matplotlib.pyplot import text
