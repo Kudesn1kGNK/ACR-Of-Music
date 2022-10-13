@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 import json,time,base64,hashlib,hmac,os,requests,pyaudio,wave,os.path
-from PyQt6 import QtGui
 import webbrowser
 import winsound
 from matplotlib.pyplot import text
