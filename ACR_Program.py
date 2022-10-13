@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-import json,time,base64,hashlib,hmac,os,requests,pyaudio,wave,os.path
+import json,time,base64,hashlib,hmac,requests,pyaudio,os,wave,os.path
 import webbrowser
 import winsound
 from matplotlib.pyplot import text
 from tkinter import filedialog as fd
 from tkinter import *
+from tkinter import Entry
 import tkinter as tk
+from ffmpeg import audio
 
 root = tk.Tk()
 
@@ -155,11 +157,11 @@ def record():
         p = pyaudio.PyAudio()
 
         for i in range(p.get_device_count()):
-            if (('Stereo Mix' in p.get_device_info_by_index(i)['name']) and (p.get_device_info_by_index(i)['hostApi']==0)):
+            if ((('Stereo Mix' in p.get_device_info_by_index(i)['name'])or('Стерео микшер' in p.get_device_info_by_index(i)['name'])) and (p.get_device_info_by_index(i)['hostApi']==0)):
                 global index
                 index=i
                 textline.configure(state=NORMAL)
-                textline.insert(1.0, f'Запись|{seconds}s\n')
+                textline.insert(1.0, f'\nЗапись|{seconds}s\n\n')
                 root.update()
                 textline.configure(state=DISABLED)
                 break
@@ -188,23 +190,40 @@ def record():
         wf.close()
         global name
         name='Logs/output.wav'
-        func()
+        func(name)
     except:
         textline.configure(state=NORMAL)
-        textline.insert(1.0, f'Включите микшер и перезагрузите программу\n')
+        textline.insert(1.0, f'Включите микшер и перезагрузите программу\n\n')
         root.update()
         textline.configure(state=DISABLED)
 
 #выбор файла с пк
 def callback():
     global name
-    name= fd.askopenfilename()
+    seconds = v.get()
+    name = fd.askopenfilename()
+
+    try:
+        f = open(name, 'r')
+        f.close()
+    except:
+        return
+
     textline.configure(state=NORMAL)
-    textline.insert(1.0, f'{name}\n')
+    textline.insert(1.0, '—Обрезаем аудио\видео\n\n')
     root.update()
     textline.configure(state=DISABLED)
-    func()
+    
+    audio.a_intercept(f'"{name}"',0,seconds,'Logs/output_0.mp3')
+    audio.a_volume('Logs/output_0.mp3',2,'Logs/output.mp3')
+        
+    textline.configure(state=NORMAL)
+    textline.insert(1.0, f'\n—{name}\n')
+    root.update()
+    textline.configure(state=DISABLED)
 
+    func('Logs/output.mp3')
+    
 #Подготовка ключей для сервиса
 access_key = AK
 access_secret = SK
@@ -216,7 +235,7 @@ data_type = "audio"
 signature_version = "1"
 timestamp = time.time()
 
-def func():
+def func(name):
     string_to_sign = http_method + "\n" + http_uri + "\n" + access_key + "\n" + data_type + "\n" + signature_version + "\n" + str(timestamp)
     sign = base64.b64encode(hmac.new(access_secret.encode('ascii'), string_to_sign.encode('ascii'),digestmod=hashlib.sha1).digest()).decode('ascii')
     global sample_bytes
@@ -245,12 +264,22 @@ def func():
         with open('Logs/log.json','r',encoding='utf-8') as log:
             global templates
             templates = json.load(log)
-        with open('Logs/log.json','w+',encoding='utf-8') as log:
-            log.write(json.dumps(templates, sort_keys=True,indent=4,ensure_ascii=False))
 
         #вывод лога в текстовое окно приложения
         textline.configure(state=NORMAL)
-        textline.insert(1.0, json.dumps(templates, sort_keys=True,indent=4,ensure_ascii=False))
+        # textline.insert(1.0, json.dumps(templates, sort_keys=True,indent=4,ensure_ascii=False))
+        try:
+            Album=templates['metadata']['music'][0]['album']['name']
+            Artist=templates['metadata']['music'][0]['label']
+            Title=templates['metadata']['music'][0]['title']
+            textline.insert(1.0,f'Альбом — {Album}\n{Artist} — {Title}')
+        except:
+            if(templates['status']['msg']=="No result"):
+                textline.insert(1.0,'Нет результа, попробуйте ещё раз')
+            elif(templates['status']['msg']=="invalid signature"):
+                textline.insert(1.0,'Ключи введены не правильно или не введены вовсе')
+            else:
+                textline.insert(1.0,'Закончился днейвной лимит ключей, попробуйте другие или дождитесь завтра')
         root.update()
         textline.configure(state=DISABLED)
         
@@ -264,18 +293,24 @@ def func():
 
 v=IntVar()
 
-Label(root,text=f'Не трогать программу пока идет запись\nДля удачного результата необходимо от 5 до 20 секунд\nЕсли запись не пошла, значит не включен микшер').grid(row=0,columnspan=3)
-# Button(root,text='Запись c ПК',command=rec.start,width=1).grid(row=1,column=0,sticky="nsew")¸
+Label(root,text=f'1: Не трогать программу пока идет запись\n2: Обязательным условием записи с ПК — наличие включенного микшера').grid(row=0,columnspan=3)
+# Button(root,text='Запись c ПК',command=rec.start,width=1).grid(row=1,column=0,sticky="nsew")
 Button(root,text='Запись c ПК',command=record,width=1).grid(row=1,column=0,sticky="nsew")
 Button(root,text='Выбор файла',command=callback,width=1).grid(row=1,column=1,sticky="nsew")
 scale = Scale(variable = v, from_ = 5, to = 20, orient = HORIZONTAL)
 scale.grid(row=3,columnspan=2,sticky="nsew")
 scale.set(S)
-Label(text='Сколько секунд будет запись').grid(row=2,columnspan=2,sticky="n")
+Label(text='Сколько секунд будет запись/аудио\видео').grid(row=2,columnspan=2,sticky="n")
 Label(text='↓Вывод↓').grid(row=4,columnspan=2)
+
+def _onKeyRelease(event):#копирование на всех языках
+    ctrl  = (event.state & 0x4) != 0
+    if event.keycode==67 and  ctrl and event.keysym.lower() != "c":
+        event.widget.event_generate("<<Copy>>")
 
 #Вывод данных файла
 textline = Text(state=DISABLED)
+root.bind("<Key>", _onKeyRelease, "+")
 textline.grid(row=6,columnspan=2,sticky='ew')
 scroll = Scrollbar(command=textline.yview)
 scroll.grid(row=6,column=3,sticky='ns')
@@ -285,12 +320,12 @@ textline.config(yscrollcommand=scroll.set)
 def on_closing():
     if os.path.exists('Logs/output.wav'):
         os.remove('Logs/output.wav')
-    if os.path.exists('Logs/output.mp4'):
-        os.remove('Logs/output.mp4')
     if os.path.exists('Logs/output.mp3'):
         os.remove('Logs/output.mp3')
     if os.path.exists('Logs/log.json'):
         os.remove('Logs/log.json')
+    if os.path.exists('Logs/script.cmd'):
+        os.remove('Logs/script.cmd')
     if os.path.exists('Logs/data_file.json'):
         with open("Logs/data_file.json", "r") as write_file:
             f=json.load(write_file)
