@@ -2,7 +2,6 @@
 #-*- coding:utf-8 -*-
 import json,time,base64,hashlib,hmac,requests,pyaudio,wave,os.path,subprocess
 from moviepy.editor import *
-from PyQt6 import QtGui
 import webbrowser
 import winsound
 from matplotlib.pyplot import text
