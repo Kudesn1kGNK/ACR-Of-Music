@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-import json,time,base64,hashlib,hmac,requests,pyaudio,os,wave,os.path,subprocess
-import sys
+import json,time,base64,hashlib,hmac,requests,pyaudio,os,wave,os.path
 from PyQt6 import QtGui
 import webbrowser
 import winsound
 from matplotlib.pyplot import text
 from tkinter import filedialog as fd
 from tkinter import *
+from tkinter import Entry
 import tkinter as tk
 from ffmpeg import audio
 
@@ -162,7 +162,7 @@ def record():
                 global index
                 index=i
                 textline.configure(state=NORMAL)
-                textline.insert(1.0, f'Запись|{seconds}s\n')
+                textline.insert(1.0, f'\nЗапись|{seconds}s\n\n')
                 root.update()
                 textline.configure(state=DISABLED)
                 break
@@ -194,7 +194,7 @@ def record():
         func(name)
     except:
         textline.configure(state=NORMAL)
-        textline.insert(1.0, f'Включите микшер и перезагрузите программу\n')
+        textline.insert(1.0, f'Включите микшер и перезагрузите программу\n\n')
         root.update()
         textline.configure(state=DISABLED)
 
@@ -203,49 +203,25 @@ def callback():
     global name
     seconds = v.get()
     name = fd.askopenfilename()
-    # try:#обрезание видео если оно длинее установленного
-    #     def get_length(name):
-    #         result = subprocess.run(["ffprobe", "-v", "error", "-show_entries",
-    #                                 "format=duration", "-of",
-    #                                 "default=noprint_wrappers=1:nokey=1", name],
-    #             stdout=subprocess.PIPE,
-    #             stderr=subprocess.STDOUT)
-    #         return float(result.stdout)
 
-    #     if(get_length(f'{name}')>seconds):
-    #         textline.configure(state=NORMAL)
-    #         textline.insert(1.0, '\n—Обрезаем аудио\видео\n')
-    #         root.update()
-    #         textline.configure(state=DISABLED)
-            
-    #         # subprocess.call(f'./ffmpeg.exe -i "{name}" -y -vn -sn -dn -ss 0 -t {seconds} -ar 44100 -ac 2 -ab 128000 -af "volume=2" -c mp3 Logs/output.mp3')
-    #         audio.a_intercept(f'"{name}"',0,seconds,'Logs/output.mp3')
-    #         audio.a_volume('Logs/output.mp3',2,'output.mp3')
-    #         print(name)
-    #         print(subprocess.call(f'ffmpeg -i "{name}" 2>&1 | grep Duration | cut -d " " -f 4 | sed s/,//'))
-    #         return
-    # except:
-    #     return
     try:
-        textline.configure(state=NORMAL)
-        textline.insert(1.0, '\n—Обрезаем аудио\видео\n')
-        root.update()
-        textline.configure(state=DISABLED)
-        
-        audio.a_intercept(f'"{name}"',0,seconds,'Logs/output.mp3')
-        audio.a_volume('Logs/output.mp3',2,'output.mp3')
-            
-        textline.configure(state=NORMAL)
-        textline.insert(1.0, f'\n—{name}\n')
-        root.update()
-        textline.configure(state=DISABLED)
+        f = open(name, 'r')
+        f.close()
     except:
         return
+
+    textline.configure(state=NORMAL)
+    textline.insert(1.0, '—Обрезаем аудио\видео\n\n')
+    root.update()
+    textline.configure(state=DISABLED)
     
-    # if(get_length(name)>seconds):
-    #     func(f'Logs/output.mp3')
-    # else:
-    #     func(name)
+    audio.a_intercept(f'"{name}"',0,seconds,'Logs/output.mp3')
+    audio.a_volume('Logs/output.mp3',2,'output.mp3')
+        
+    textline.configure(state=NORMAL)
+    textline.insert(1.0, f'\n—{name}\n')
+    root.update()
+    textline.configure(state=DISABLED)
 
     func('Logs/output.mp3')
     
@@ -289,12 +265,22 @@ def func(name):
         with open('Logs/log.json','r',encoding='utf-8') as log:
             global templates
             templates = json.load(log)
-        with open('Logs/log.json','w+',encoding='utf-8') as log:
-            log.write(json.dumps(templates, sort_keys=True,indent=4,ensure_ascii=False))
 
         #вывод лога в текстовое окно приложения
         textline.configure(state=NORMAL)
-        textline.insert(1.0, json.dumps(templates, sort_keys=True,indent=4,ensure_ascii=False))
+        # textline.insert(1.0, json.dumps(templates, sort_keys=True,indent=4,ensure_ascii=False))
+        try:
+            Album=templates['metadata']['music'][0]['album']['name']
+            Artist=templates['metadata']['music'][0]['label']
+            Title=templates['metadata']['music'][0]['title']
+            textline.insert(1.0,f'Альбом — {Album}\n{Artist} — {Title}')
+        except:
+            if(templates['status']['msg']=="No result"):
+                textline.insert(1.0,'Нет результа, попробуйте ещё раз')
+            elif(templates['status']['msg']=="invalid signature"):
+                textline.insert(1.0,'Ключи введены не правильно или не введены вовсе')
+            else:
+                textline.insert(1.0,'Закончился днейвной лимит ключей, попробуйте другие или дождитесь завтра')
         root.update()
         textline.configure(state=DISABLED)
         
@@ -318,8 +304,14 @@ scale.set(S)
 Label(text='Сколько секунд будет запись/аудио\видео').grid(row=2,columnspan=2,sticky="n")
 Label(text='↓Вывод↓').grid(row=4,columnspan=2)
 
+def _onKeyRelease(event):#копирование на всех языках
+    ctrl  = (event.state & 0x4) != 0
+    if event.keycode==67 and  ctrl and event.keysym.lower() != "c":
+        event.widget.event_generate("<<Copy>>")
+
 #Вывод данных файла
 textline = Text(state=DISABLED)
+root.bind("<Key>", _onKeyRelease, "+")
 textline.grid(row=6,columnspan=2,sticky='ew')
 scroll = Scrollbar(command=textline.yview)
 scroll.grid(row=6,column=3,sticky='ns')
