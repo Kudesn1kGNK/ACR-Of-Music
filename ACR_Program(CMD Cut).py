@@ -157,7 +157,7 @@ def record():
         p = pyaudio.PyAudio()
 
         for i in range(p.get_device_count()):
-            if (('Stereo Mix' in p.get_device_info_by_index(i)['name']) and (p.get_device_info_by_index(i)['hostApi']==0)):
+            if ((('Stereo Mix' in p.get_device_info_by_index(i)['name'])or('Стерео микшер' in p.get_device_info_by_index(i)['name'])) and (p.get_device_info_by_index(i)['hostApi']==0)):
                 global index
                 index=i
                 textline.configure(state=NORMAL)
