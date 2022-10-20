@@ -382,7 +382,13 @@ def func(name):
         textline.configure(state=NORMAL)
         try:
             Album=templates['metadata']['music'][0]['album']['name']
-            Artist=templates['metadata']['music'][0]['label']
+            try:
+                Artist=templates ['metadata']['music'][0]['artists'][0]['name']
+            except:
+                try:
+                    Artist=templates ['metadata']['music'][0]['artists'][0]['name'][0]
+                except:
+                    Artist=templates['metadata']['music'][0]['label']
             Title=templates['metadata']['music'][0]['title']
             textline.insert(1.0,f'Альбом — {Album}\n{Artist} — {Title}')
         except:
