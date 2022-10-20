@@ -6,6 +6,7 @@ import webbrowser
 from tkinter import filedialog as fd
 from tkinter import *
 from tkinter import Entry
+from tkinter.font import Font
 import tkinter as tk
 
 root = tk.Tk()
@@ -28,7 +29,6 @@ H=''
 S=10#Секунды по умолчанию
 
 pathname = os.path.dirname(sys.argv[0])
-print(pathname)
 
 if not os.path.exists(f'{pathname}/Logs'):
     os.makedirs(f'{pathname}/Logs')
@@ -59,10 +59,18 @@ else:
     with open(f"{pathname}/Logs/data_file.json", "w") as write_file:
             json.dump(data_local, write_file)
 
+LeftMenu = Frame(root, bg ="#304156",width=22)
+LeftMenu.grid(row=1,rowspan = 10, column = 0, sticky = "nesw")
+
+def on_enter(e):
+    e.widget['background'] = '#263445'
+def on_leave(e):
+    e.widget['background'] = '#304156'
+
 #Предупреждение о несоответствие ключей минимальной характеристике
-Warn=Label(text='Данные настроек не введены или введены не верно',fg='#ff0000')
+Warn=Label(root,text='Данные настроек не введены\nили введены не верно',bg='#304156',fg='#ff0000',width=25,font=('Microsoft Sans Serif',8))
 if(len(AK)!=32 or len(SK)!=40 or len(H)<24):
-    Warn.grid(row=5,columnspan=2)
+    Warn.grid(row=1,column=0,sticky='s')
 
 #Переменные для сбора ключей с полей ввода
 textH = StringVar()
@@ -79,48 +87,64 @@ def SUDO():
     sudo.resizable(width=0, height=0)
     sudo.title('Установка ffpmeg')
 
-    width = 470
-    heigh = 130
+    SudoFrame = Frame(sudo, bg ="#304156")
+    SudoFrame.grid(row=1,rowspan = 10, column = 0, sticky = "nesw")
+
+    width = 447
+    heigh = 109
     screenwidth = sudo.winfo_screenwidth()
     screenheight = sudo.winfo_screenheight()
     sudo.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
-    Label(sudo,text='Пароль к sudo').grid(row=0,column=0,sticky='n')
-    Ent1=Entry(sudo,show="*",textvariable=SUD,width=10)
-    Ent1.delete(0, END)
-    Ent1.grid(row=1,column=0,sticky='n')
-    Label(sudo,text='Пароль не сохранятеся и требуется только для установки ffmpeg\nвы можете установить его самостоятельно\nsudo apt install ffmpeg').grid(row=2,column=0,sticky='n')
-    Button(sudo,text='Подтвердить',command=mpeg).grid(row=3,column=0,sticky='n')
-    
-#подходит пароль или нет
-def pas():
-    try:
-        cmd = f"echo {SUD.get()} | sudo -S ls"
-        res = subprocess.call(cmd, shell=True)
 
-        if res != 0:
-            return False
-        return True
-    except Exception:
-        return False
+    Label(SudoFrame,font=('Microsoft Sans Serif',12),state='normal',bg="#304156",fg="#bfcbd9",text='Необходимо установить ffmpeg\nПодтвердив данное требование начнется установка\nВы можете установить его самостоятельно\nsudo apt install ffmpeg').grid(row=2,column=0,sticky='n')
+    f = Font(family='Microsoft Sans Serif',size=12,underline=True)
+    Button(SudoFrame,font=f,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',borderwidth=0,highlightthickness=0,text='Подтвердить',command=mpeg).grid(row=3,column=0,sticky='swe')
 
-#Подтверждение установки ffmpeg
 def mpeg():
     sudo.destroy()
-    if(pas()==False):
+    try:
+        cmd = f"pkexec apt install ffmpeg"
         textline.configure(state=NORMAL)
-        textline.insert(1.0, f'\nПароль не подходит\n\n')
+        textline.insert(1.0, f'ffmpeg устанавливается...\n\n')
         root.update()
         textline.configure(state=DISABLED)
-        SUDO()
-        return
-    else:
+        res = subprocess.call(cmd, shell=True)
+        if res != 0:
+            textline.configure(state=NORMAL)
+            textline.insert(1.0, f'Пароль не подходит\n')
+            root.update()
+            textline.configure(state=DISABLED)
+            return False
+        check()
+        callback()
+        return True
+    except Exception:
         textline.configure(state=NORMAL)
-        textline.insert(1.0, f'\nffmpeg устанавливается...\n\n')
+        textline.insert(1.0, f'Пароль не подходит\n')
         root.update()
         textline.configure(state=DISABLED)
-    cmd = f"echo {SUD.get()} | sudo -S apt install ffmpeg"
-    subprocess.call(cmd, shell=True)
-    callback()
+        return False
+
+def FAQ():
+    global faq
+    faq=tk.Toplevel(root)
+    faq.grab_set()
+    # faq.attributes("-topmost",True)
+    faq.resizable(width=0, height=0)
+    faq.title('Важные моменты пользования')
+
+    faq.grid_columnconfigure(0, weight = 1)
+    faq.grid_rowconfigure(0, weight = 1)
+    faqFrame=Frame(faq,bg="#304156")
+    faqFrame.grid(row=0,column=0,sticky = "nesw")
+
+    width = 590
+    heigh = 110
+    screenwidth = faq.winfo_screenwidth()
+    screenheight = faq.winfo_screenheight()
+    faq.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
+
+    Label(faqFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text=f'1: Ползунком выбирается продолжительность в секундах как для записи\nтак и для файла\n2: Не трогать программу пока идет запись\n3: Обязательным условием записи с ПК — наличие включенного микшера').grid(row=0,column=0)
 
 #ввод ключей
 def setting():
@@ -133,43 +157,41 @@ def setting():
     settings.resizable(width=0, height=0)
     settings.title('Настройка ключей')
 
-    width = 487
-    heigh = 121
+    width = 545
+    heigh = 117
     screenwidth = settings.winfo_screenwidth()
     screenheight = settings.winfo_screenheight()
     settings.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
 
-    Label(settings,text='Host:').grid(row=0,column=0,sticky='w')
-    Ent1=Entry(settings,textvariable=textH,width=50)
+    setFrame=Frame(settings,bg="#304156")
+    setFrame.grid(row=0,column=0,sticky = "nesw")
+
+    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Host:').grid(row=0,column=0,sticky='w')
+    Ent1=Entry(setFrame,textvariable=textH,highlightthickness=0,width=50,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
     Ent1.grid(row=0,column=1,sticky='e')
     Ent1.delete(0, END)
     Ent1.insert(END, f'{H}')
 
-    Label(settings,text='Access Key:').grid(row=1,column=0,sticky='w')
-    Ent2=Entry(settings,textvariable=textAK,width=50)
+    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Access Key:').grid(row=1,column=0,sticky='w')
+    Ent2=Entry(setFrame,textvariable=textAK,highlightthickness=0,width=50,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
     Ent2.grid(row=1,column=1,sticky='e')
     Ent2.delete(0, END)
     Ent2.insert(END, f'{AK}')
 
-    Label(settings,text='Secret Key:').grid(row=2,column=0,sticky='w')
-    Ent3=Entry(settings,textvariable=textSK,width=50)
+    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Secret Key:').grid(row=2,column=0,sticky='w')
+    Ent3=Entry(setFrame,textvariable=textSK,highlightthickness=0,width=50,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
     Ent3.grid(row=2,column=1,sticky='e')
     Ent3.delete(0, END)
     Ent3.insert(END, f'{SK}')
 
-    Label(settings,text='Все данные находяться на этом сайте:').grid(row=3,columnspan=2,sticky='w')
-    lb=Label(settings, text="https://www.ACRcloud.com", fg="blue", cursor="hand2")
+    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Все данные находяться на этом сайте:').grid(row=3,columnspan=2,sticky='w')
+    lb=Label(setFrame, text="https://www.ACRcloud.com",bg="#304156", fg="#409eff", cursor="hand2",font=('Microsoft Sans Serif',11))
     lb.bind('<Button-1>',web)
     lb.grid(row=3,columnspan=2,sticky='ne')
-    Button(settings,text='Подтвердить',command=ent).grid(row=4,columnspan=2,sticky='we')
-
-#Менюбар с входом в настройки конфигурации
-menubar = Menu(root)
-root.config(menu=menubar)
-menubar.add_command(
-    label="Settings",
-    command=setting
-)
+    enter=Button(setFrame,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,highlightthickness=0,text='Подтвердить',command=ent)
+    enter.grid(row=4,columnspan=2,sticky='we')
+    enter.bind("<Enter>", on_enter)
+    enter.bind("<Leave>", on_leave)
 
 #Сохранение введеных ключей и присвоение в переменные
 def ent():
@@ -191,7 +213,7 @@ def ent():
     access_secret = SK
     requrl = f"http://{H}/v1/identify"
     if(len(AK)!=32 or len(SK)!=40 or len(H)<=24):
-        Warn.grid(row=5,columnspan=2)
+        Warn.grid(row=1,column=0,sticky='s')
     elif (Warn.winfo_exists):
         Warn.grid_forget()
         root.update()
@@ -269,22 +291,29 @@ def volume(input_file, volume, out_file):
     except Exception:
         return False
 
+ffmpeg_try=0
 def check():
+    global ffmpeg_try
     try:
         cmd = "ffmpeg -version"
         res = subprocess.call(cmd, shell=True)
 
         if res != 0:
             return False
+        ffmpeg_try+=1
         return True
     except Exception:
         return False
 
-ffmpeg_try=0
 #выбор файла с пк
 def callback():
     global name,ffmpeg_try
     seconds = v.get()
+
+    if(ffmpeg_try==0):
+        SUDO()
+        return
+
     name = fd.askopenfilename()
 
     try:
@@ -293,20 +322,13 @@ def callback():
     except:
         return
 
-    if(ffmpeg_try==0):
-        if(check()==False):
-            SUDO()
-            return
-        ffmpeg_try+=1
-    print(ffmpeg_try)
-
     textline.configure(state=NORMAL)
     textline.insert(1.0, '—Обрезаем аудио\видео\n\n')
     root.update()
     textline.configure(state=DISABLED)
     
-    intercept(f'"{name}"',0,seconds,f'{pathname}/Logs/output_0.mp3')
-    volume(f'{pathname}/Logs/output_0.mp3',2,f'{pathname}/Logs/output.mp3')
+    intercept(f'"{name}"',0,seconds,f'"{pathname}/Logs/output_0.mp3"')
+    volume(f'"{pathname}/Logs/output_0.mp3"',2,f'"{pathname}/Logs/output.mp3"')
         
     textline.configure(state=NORMAL)
     textline.insert(1.0, f'\n—{name}\n')
@@ -358,7 +380,6 @@ def func(name):
 
         #вывод лога в текстовое окно приложения
         textline.configure(state=NORMAL)
-        # textline.insert(1.0, json.dumps(templates, sort_keys=True,indent=4,ensure_ascii=False))
         try:
             Album=templates['metadata']['music'][0]['album']['name']
             Artist=templates['metadata']['music'][0]['label']
@@ -384,29 +405,56 @@ def func(name):
         textline.configure(state=DISABLED)
     
     playsound(f'{pathname}/windows-background.mp3')
+
 v=IntVar()
-Label(root,text=f'1: Не трогать программу пока идет запись\n2: Обязательным условием записи с ПК — наличие включенного микшера').grid(row=0,columnspan=3)
-# Button(root,text='Запись c ПК',command=rec.start,width=1).grid(row=1,column=0,sticky="nsew")
-Button(root,text='Запись c ПК',command=record,width=1).grid(row=1,column=0,sticky="nsew")
-Button(root,text='Выбор файла',command=callback,width=1).grid(row=1,column=1,sticky="nsew")
-scale = Scale(variable = v, from_ = 5, to = 20, orient = HORIZONTAL)
-scale.grid(row=3,columnspan=2,sticky="nsew")
-scale.set(S)
-Label(text='Сколько секунд будет запись/аудио\видео').grid(row=2,columnspan=2,sticky="n")
-Label(text='↓Вывод↓').grid(row=4,columnspan=2)
 
 def _onKeyRelease(event):#копирование на всех языках
     ctrl  = (event.state & 0x4) != 0
     if event.keycode==67 and  ctrl and event.keysym.lower() != "c":
         event.widget.event_generate("<<Copy>>")
+root.bind("<Key>", _onKeyRelease, "+")
+
+root.grid_columnconfigure(0, weight = 1)
+root.grid_rowconfigure(1, weight = 1)
+
+photoimage = PhotoImage(file = f'{pathname}/Logs/File.png')
+PNG_File = photoimage.subsample(2, 2)
+photoimage = PhotoImage(file = f'{pathname}/Logs/Record.png')
+PNG_Record = photoimage.subsample(2, 2)
+
+Helvetica = Font(family='Microsoft Sans Serif')
+
+ProgName = Frame(root, bg ="#2b2f3a",width=22,height=22)
+ProgName.grid(row = 0, column = 0, sticky = "nesw")
+Label(ProgName,text='ACR of Music',width=14,height=2,bg="#2b2f3a",fg="#bfcbd9",font=('Microsoft Sans Serif',14,'bold')).grid(row=0,column=0)
+
+Rec=Button(LeftMenu,bg="#304156",compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,highlightthickness=0,text='Запись c ПК',command=record,width=153,height=40)
+Rec.grid(row=0,column=0,sticky="w")
+Rec.configure(image=PNG_Record)
+Choice=Button(LeftMenu,bg="#304156",compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,highlightthickness=0,text='Выбор файла',command=callback,width=153,height=40)
+Choice.grid(row=1,column=0,sticky="w")
+Choice.configure(image=PNG_File)
+set=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,highlightthickness=0,text='Настройки',command=setting,width=22,height=2)
+set.grid(row=2,column=0,sticky="s")
+fq=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,highlightthickness=0,text='Важные моменты',command=FAQ,width=22,height=2)
+fq.grid(row=3,column=0,sticky="s")
+
+Rec.bind("<Enter>", on_enter)
+Choice.bind("<Enter>", on_enter)
+set.bind("<Enter>", on_enter)
+fq.bind("<Enter>", on_enter)
+Rec.bind("<Leave>", on_leave)
+Choice.bind("<Leave>", on_leave)
+set.bind("<Leave>", on_leave)
+fq.bind("<Leave>", on_leave)
+
+scale = Scale(variable = v, from_ = 5.0, to = 20.0,bg='#304156',highlightbackground='#304156',activebackground='#263445',fg='#bfcbd9',troughcolor='#2b2f3a', orient = HORIZONTAL)
+scale.grid(row=0,column=1,columnspan=2,sticky="nsew")
+scale.set(S)
 
 #Вывод данных файла
-textline = Text(state=DISABLED)
-root.bind("<Key>", _onKeyRelease, "+")
-textline.grid(row=6,columnspan=2,sticky='ew')
-scroll = Scrollbar(command=textline.yview)
-scroll.grid(row=6,column=3,sticky='ns')
-textline.config(yscrollcommand=scroll.set)
+textline = Text(root,state=DISABLED,width=53,borderwidth=0,bg='#bfcbd9',font=('Microsoft Sans Serif',11))
+textline.grid(row=1,rowspan=3,column=1,sticky='sen')
 
 #удаление и сохранение данных при закрытие
 def on_closing():
@@ -418,8 +466,6 @@ def on_closing():
         os.remove(f'{pathname}/Logs/output.mp3')
     if os.path.exists(f'{pathname}/Logs/log.json'):
         os.remove(f'{pathname}/Logs/log.json')
-    if os.path.exists(f'{pathname}/Logs/script.cmd'):
-        os.remove(f'{pathname}/Logs/script.cmd')
     if os.path.exists(f'{pathname}/Logs/data_file.json'):
         with open(f'{pathname}/Logs/data_file.json', "r") as write_file:
             f=json.load(write_file)
@@ -428,5 +474,5 @@ def on_closing():
             json.dump(f, write_file)
     raise SystemExit()
 root.protocol("WM_DELETE_WINDOW", on_closing)
-
+check()
 root.mainloop()
