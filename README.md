@@ -5,7 +5,7 @@ ____
 ![image](https://user-images.githubusercontent.com/65385582/197236456-bf66ef9c-aa39-412f-951e-41f3aa4a4436.png)
 
 The main task of this small program is to work with ACR Cloud.
-Recording only via Realtek Mix or media files, Russian and English are supported.
+Recording only via Realtek Mix or media files, Russian and English OS are supported.
 
 > if you run "py" files, you will need ffmpeg https://ffmpeg.org/download.html
 
