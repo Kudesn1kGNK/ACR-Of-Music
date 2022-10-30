@@ -2,7 +2,8 @@
 ____
 https://www.acrcloud.com/ — The whole program works thanks to the open API ACRClour
 ____
-![image](https://user-images.githubusercontent.com/65385582/197236456-bf66ef9c-aa39-412f-951e-41f3aa4a4436.png)
+![image](https://user-images.githubusercontent.com/65385582/198888497-72bcee78-7f29-4bde-9bf3-9c53c1f9072a.png)
+
 
 The main task of this small program is to work with ACR Cloud.
 Recording only via Realtek Mix or media files, Russian and English OS are supported.
