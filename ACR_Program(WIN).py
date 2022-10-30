@@ -1,15 +1,15 @@
-#!/usr/bin/env python
 #-*- coding:utf-8 -*-
 #python 3.9
 import json,time,base64,hashlib,hmac,requests,pyaudio,os,wave,os.path,sys
 import webbrowser
 import winsound
-from tkinter import filedialog as fd
+from tkinter import filedialog,Entry
 from tkinter import *
-from tkinter import Entry
 from tkinter.font import Font
 import tkinter as tk
 from ffmpeg import audio
+from PIL import Image,ImageTk
+from io import BytesIO
 
 root = tk.Tk()
 
@@ -24,10 +24,11 @@ root.title('ACR Recognition')
 ico=b'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACRUlEQVR42sWXz0tUURTH3/9U0Q+SGEhq4QgVRUERBC0Kghb9oIVBMERFtYg21UqoRS2CcqMLBxVcCM68GXVm1HH8MTrq6Azq/PSNPr9ePFePzxkdns9358CXd++Zd+75nHPv8LjaqUFoUl4hv1BeCC4pL3O07ObVgJ2BTwiK5QMEgKRBg+QVAPDbCXqeAIomEC+dCIBfACBnJ+jPEvbsfNAxQE6zGzRZZoCWIccAsAVwNQyL3YspBmibhMWexhUD/MvAYm+mFQOkDEpsmPT8OqcQoHWYK+9doeevtEIA3zQlTZSB7/M07swqBOjKUtLfS8D7JI0Hcvx7cwho0l0COC2UqVDSZxPAiwSNJ0rWf8iXOZcAbkYooSnk0YGHYzTPbvA7HRkxrwAXgi4AfJAtjxVpfn2Egc4EyJc2yPcx6QJAjzz17Ys094SwZ81h4MYIz9MV4FzgxACowrVNWvxJnP2VLfLdjgDvZmCxtzM11hG6HwOuDR8CcDdaW6/kgdvYAi7y/opKyf9oHOiWHSpI0NR69Tr9a7xtDMgAdU3PW8mjRfK/npIdkuOSiTpG79sG+DG/H4Ar6sxyh5qCwM9F1LUFowaARz9K1Qfrv/wwlWXFQdmhs4Ha8X+X6b11E3iZqAKwr/YDlX5L1Y+5EgYu6TR2DPB5FhZ7MGor3jlA2xQnL25S65UCPB5ngL5V8ikFuBNlgE9JZwC54wReDgEpg071rcixAfJ8MVEuvph4G3w1a9zlVEgjAFKr3I6Ci0kLMod3N+82PcJ9HGP605gAAAAASUVORK5CYII='
 root.tk.call('wm', 'iconphoto', root, PhotoImage(data=ico))
 
-#Объявление переменных под ключи
+#Объявление переменной под токен
 AK=''
 SK=''
 H=''
+TK=''
 
 S=10#Секунды по умолчанию
 
@@ -36,7 +37,7 @@ pathname = os.path.dirname(sys.argv[0])
 if not os.path.exists(f'{pathname}/Logs'):
     os.makedirs(f'{pathname}/Logs')
 
-#Загрузка ключей или создание файла конфигурации
+#Загрузка токена или создание файла конфигурации
 if os.path.exists(f'{pathname}/Logs/data_file.json'):
     with open(f'{pathname}/Logs/data_file.json', "r") as write_file:
         f=json.load(write_file)
@@ -44,7 +45,8 @@ if os.path.exists(f'{pathname}/Logs/data_file.json'):
             "AccessKey":f['AccessKey'],
             "SecretKey":f['SecretKey'],
             "Host":f['Host'],
-            "Seconds":f['Seconds']
+            "Seconds":f['Seconds'],
+            "Token":f['Token']
         }
         with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
             json.dump(data_local, write_file)
@@ -52,12 +54,14 @@ if os.path.exists(f'{pathname}/Logs/data_file.json'):
         SK=data_local['SecretKey']
         H=data_local['Host']
         S=data_local['Seconds']
+        TK=data_local['Token']
 else:
     data_local={
             "AccessKey":'',
             "SecretKey":'',
             "Host":'',
-            "Seconds":''
+            "Seconds":'',
+            "Token":''
         }
     with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
             json.dump(data_local, write_file)
@@ -69,106 +73,175 @@ def on_enter(e):
     e.widget['background'] = e.widget['activebackground']
 def on_leave(e):
     e.widget['background'] = '#304156'
-
+def show_hand_cursor(e):
+    e.widget.config(cursor='hand2')
+def show_xterm_cursor(e):
+    e.widget.config(cursor='xterm')
+    
 #Предупреждение о несоответствие ключей минимальной характеристике
-Warn=Label(root,text='Данные настроек не введены\nили введены не верно',bg='#304156',fg='#ff0000',width=25,font=('Microsoft Sans Serif',9))
-if(len(AK)!=32 or len(SK)!=40 or len(H)<24):
+Warn=Label(root,text='Токен не введен\nили введен не верно',bg='#304156',fg='#ff0000',width=25,font=('Microsoft Sans Serif',9))
+if(len(TK)<1500):
     Warn.grid(row=1,column=0,sticky='s')
 
 #Переменные для сбора ключей с полей ввода
-textH = StringVar()
-textAK = StringVar()
-textSK = StringVar()
+textTK = StringVar()
 
-def FAQ():
-    global faq
-    faq=tk.Toplevel(root)
-    faq.grab_set()
-    # faq.attributes("-topmost",True)
-    faq.resizable(width=0, height=0)
-    faq.title('Важные моменты пользования')
+#создание доп окон
+class windows:
+    def FAQ():
+        faq=tk.Toplevel(root)
+        faq.grab_set()
+        faq.attributes("-topmost",True)
+        faq.resizable(width=0, height=0)
+        faq.title('Важные моменты пользования')
+        
+        faq.grid_columnconfigure(0, weight = 1)
+        faq.grid_rowconfigure(0, weight = 1)
+        faqFrame=Frame(faq,bg="#304156")
+        faqFrame.grid(row=0,column=0,sticky = "nesw")
 
-    faq.grid_columnconfigure(0, weight = 1)
-    faq.grid_rowconfigure(0, weight = 1)
-    faqFrame=Frame(faq,bg="#304156")
-    faqFrame.grid(row=0,column=0,sticky = "nesw")
+        width = 722
+        heigh = 185
+        screenwidth = faq.winfo_screenwidth()
+        screenheight = faq.winfo_screenheight()
+        faq.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
 
-    width = 580
-    heigh = 110
-    screenwidth = faq.winfo_screenwidth()
-    screenheight = faq.winfo_screenheight()
-    faq.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
+        Rules=Text(faqFrame,state=NORMAL,height=11,width=80,font=('Microsoft Sans Serif',12),bg="#304156",fg="#bfcbd9",wrap='word',borderwidth=0)
+        Rules.grid(row=0,column=0,sticky='w')
+        text='''1: Ползунком выбирается продолжительность в секундах как для записи, так и для файла.
+2: Не трогать программу, пока идет запись.
+3: Обязательным условием записи с ПК — наличие включенного микшера.
+4: Прямая ссылка на токен для европейского региона: Токен.
+Перейдя по ссылке, войдите или зарегистрируйтесь на данном сервисе. После нажмите «Create Token» задайте любое удобное имя, выберите все пункты доступа и после создания нажмите «View» скопируйте строку из 1600 символов и вставьте в соответствующее поле в настройках.
+            '''
+        Rules.insert(1.0,text)
 
-    Label(faqFrame,font=('Microsoft Sans Serif',12),bg="#304156",fg="#bfcbd9",text=f'1: Ползунком выбирается продолжительность в секундах как для записи\nтак и для файла\n2: Не трогать программу пока идет запись\n3: Обязательным условием записи с ПК — наличие включенного микшера').grid(row=0,column=0)
+        Rules.tag_add(f'tok', '5.52', '5.57')
+        Rules.tag_config(f'tok', foreground='#409eff', underline=True)
+        Rules.tag_bind(f'tok', '<Enter>', show_hand_cursor)
+        Rules.tag_bind(f'tok', '<Leave>', show_xterm_cursor)
+        Rules.tag_bind(f'tok', '<Button-1>', lambda e: webbrowser.open_new(r"https://console.acrcloud.com/account?region=eu-west-1#/developer"))
 
+        root.update()
+        Rules.configure(state=DISABLED)
 
-#ввод ключей
-def setting():
-    def web(event):
-        webbrowser.open_new(r"https://www.acrcloud.com")
-    global settings
-    settings=tk.Toplevel(root)
-    settings.grab_set()
-    settings.attributes("-topmost",True)
-    settings.resizable(width=0, height=0)
-    settings.title('Настройка ключей')
+    #ввод ключей
+    def setting():
+        settings=tk.Toplevel(root)
+        settings.bind("<Key>", _onKeyRelease, "+")
+        settings.grab_set()
+        settings.attributes("-topmost",True)
+        settings.resizable(width=0, height=0)
+        settings.title('Настройка ключей')
 
-    width = 492
-    heigh = 127
-    screenwidth = settings.winfo_screenwidth()
-    screenheight = settings.winfo_screenheight()
-    settings.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
+        width = 480
+        heigh = 97
+        screenwidth = settings.winfo_screenwidth()
+        screenheight = settings.winfo_screenheight()
+        settings.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
 
-    setFrame=Frame(settings,bg="#304156")
-    setFrame.grid(row=0,column=0,sticky = "nesw")
+        setFrame=Frame(settings,bg="#304156")
+        setFrame.grid(row=0,column=0,sticky = "nesw")
 
-    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Host:').grid(row=0,column=0,sticky='w')
-    Ent1=Entry(setFrame,textvariable=textH,width=50,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
-    Ent1.grid(row=0,column=1,sticky='e')
-    Ent1.delete(0, END)
-    Ent1.insert(END, f'{H}')
+        Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Token:').grid(row=1,column=0,sticky='w')
+        Ent3=Entry(setFrame,textvariable=textTK,width=53,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
+        Ent3.grid(row=1,column=1,sticky='e')
+        Ent3.delete(0, END)
+        Ent3.insert(END, f'{TK}')
 
-    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Access Key:').grid(row=1,column=0,sticky='w')
-    Ent2=Entry(setFrame,textvariable=textAK,width=50,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
-    Ent2.grid(row=1,column=1,sticky='e')
-    Ent2.delete(0, END)
-    Ent2.insert(END, f'{AK}')
+        Label(setFrame,font=('Microsoft Sans Serif',11),width=32,bg="#304156",fg="#bfcbd9",text='Токен можно получить на этой странице:\nподробности в «Важные моменты»').grid(row=2,columnspan=2,column=0,sticky='w')
+        lb=Label(setFrame, text="https://www.ACRcloud.com",bg="#304156", fg="#409eff", cursor="hand2",font=('Microsoft Sans Serif',11))
+        lb.bind('<Button-1>',lambda e: webbrowser.open_new(r"https://console.acrcloud.com/account#/developer"))
+        lb.grid(row=2,columnspan=2,column=1,sticky='ne')
 
-    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Secret Key:').grid(row=2,column=0,sticky='w')
-    Ent3=Entry(setFrame,textvariable=textSK,width=50,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
-    Ent3.grid(row=2,column=1,sticky='e')
-    Ent3.delete(0, END)
-    Ent3.insert(END, f'{SK}')
+        global Token_Warn
+        Token_Warn=Label(setFrame,text='Авторизация не прошла',bg='#304156',fg='#ff0000',font=('Microsoft Sans Serif',9))
 
-    Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Все данные находяться на этом сайте:').grid(row=3,columnspan=2,sticky='w')
-    lb=Label(setFrame, text="https://www.ACRcloud.com",bg="#304156", fg="#409eff", cursor="hand2",font=('Microsoft Sans Serif',11))
-    lb.bind('<Button-1>',web)
-    lb.grid(row=3,columnspan=2,sticky='ne')
-    enter=Button(setFrame,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Подтвердить',command=ent)
-    enter.grid(row=4,columnspan=2,sticky='we')
-    enter.bind("<Enter>", on_enter)
-    enter.bind("<Leave>", on_leave)
+        global Token_Successful
+        Token_Successful=Label(setFrame,text='Авторизация успешна',bg='#304156',fg='#008000',font=('Microsoft Sans Serif',9))
+
+        enter=Button(setFrame,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Подтвердить',command=ent)
+        enter.grid(row=4,column=0,columnspan=2,sticky='we')
+        enter.bind("<Enter>", on_enter)
+        enter.bind("<Leave>", on_leave)
 
 #Сохранение введеных ключей и присвоение в переменные
 def ent():
-    global AK,SK,H
-    AK=textAK.get()
-    SK=textSK.get()
-    H=textH.get()
+    global access_key,access_secret,requrl,Token
+    global TK
+    TK=textTK.get()
+
+    header={"Authorization": f"Bearer {TK}"}
+    r = requests.get('https://api-v2.acrcloud.com/api/base-projects',headers=header)
+    Project_Lists = json.loads(r.text)
+
+    try:
+        AK=Project_Lists['data'][0]['access_key']
+        SK=Project_Lists['data'][0]['access_secret']
+        H=Project_Lists['data'][0]['region']
+    except:
+        try:
+            if(Project_Lists['error']=='Authentication Exception'):
+                Token_Successful.grid_forget()
+                Warn.grid(row=1,column=0,sticky='s')
+                Token_Warn.grid(row=2,column=1,sticky='se',ipadx=25)
+                data_local={
+                        "AccessKey":'',
+                        "SecretKey":'',
+                        "Host":'',
+                        "Seconds":'',
+                        "Token":str(TK)
+                    }
+                with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
+                        json.dump(data_local, write_file)
+                access_key = ''
+                access_secret = ''
+                requrl = ''
+                Token=str(TK)
+                return
+        except:
+            pass
+        New_Proj_Json={
+        "name":"ACR_Of_Music",
+        "region":"eu-west-1",
+        "buckets":[23],
+        "type":"AVR",
+        "audio_type":"linein",
+        "external_ids":["MusicBrainz","upc","isrc","youtube","deezer","spotify","LyricFind"]
+        }
+        New_Proj = {
+        'Accept': 'application/json',
+        'Authorization':  f"Bearer {TK}",
+        'Content-Type': 'application/json'
+        }
+        r = requests.post('https://api-v2.acrcloud.com/api/base-projects',headers=New_Proj,json=New_Proj_Json)
+
+        r = requests.get('https://api-v2.acrcloud.com/api/base-projects',headers=header)
+        Project_Lists = json.loads(r.text)
+
+        AK=Project_Lists['data'][0]['access_key']
+        SK=Project_Lists['data'][0]['access_secret']
+        H=Project_Lists['data'][0]['region']
+
     with open(f'{pathname}/Logs/data_file.json', "r") as write_file:
         f=json.load(write_file)
     f['AccessKey']=str(AK)
     f['SecretKey']=str(SK)
     f['Host']=str(H)
+    f['Token']=str(TK)
     with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
         json.dump(f,write_file)
     
-    print(AK,SK,H)
-    global access_key,access_secret,requrl
     access_key = AK
     access_secret = SK
-    requrl = f"http://{H}/v1/identify"
-    if(len(AK)!=32 or len(SK)!=40 or len(H)<=24):
+    requrl = f"http://identify-{H}.acrcloud.com/v1/identify"
+    Token=TK
+    if (Token_Warn.winfo_exists):
+        Token_Successful.grid(row=2,column=1,sticky='se',ipadx=25)
+        Token_Warn.grid_forget()
+        Warn.grid_forget()
+        root.update()
+    if(len(TK)<1500):
         Warn.grid(row=1,column=0,sticky='s')
     elif (Warn.winfo_exists):
         Warn.grid_forget()
@@ -177,6 +250,16 @@ def ent():
 #функция записи с микшера и записывание в файл формата wav
 def record():
     try:
+        Rec.configure(state=DISABLED)
+        Choice.configure(state=DISABLED)
+
+        textline.configure(state=NORMAL)
+        textline.insert(1.0, '🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑\n')
+        textline.tag_add("Arrow", '1.0', '2.48')
+        textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
+        textline.configure(state=DISABLED)
+        root.update()
+
         chunk = 1024
         sample_format = pyaudio.paInt16
         channels = 2
@@ -190,9 +273,9 @@ def record():
                 global index
                 index=i
                 textline.configure(state=NORMAL)
-                textline.insert(1.0, f'\nЗапись|{seconds}s\n\n')
-                root.update()
+                textline.insert(1.0, f'\n\nЗапись|{seconds}s\n')
                 textline.configure(state=DISABLED)
+                root.update()
                 break
 
         stream = p.open(format=sample_format,
@@ -221,57 +304,144 @@ def record():
         name=f'{pathname}/Logs/output.wav'
         func(name)
     except:
+        Rec.configure(state=NORMAL)
+        Choice.configure(state=NORMAL)
         textline.configure(state=NORMAL)
-        textline.insert(1.0, f'Включите микшер и перезагрузите программу\n\n')
-        root.update()
+        textline.insert(1.0, f'Включите микшер и перезапустите программу\n')
+        textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
+        textline.tag_add("Arrow", '1.0', '2.48')
+        textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
         textline.configure(state=DISABLED)
+        root.update()
 
 #выбор файла с пк
 def callback():
+    if os.path.exists(f'{pathname}/Logs/output.wav'):
+        os.remove(f'{pathname}/Logs/output.wav')
+    if os.path.exists(f'{pathname}/Logs/output.mp3'):
+        os.remove(f'{pathname}/Logs/output.mp3')
+    if os.path.exists(f'{pathname}/Logs/output_0.mp3'):
+        os.remove(f'{pathname}/Logs/output_0.mp3')
+    Rec.configure(state=DISABLED)
+    Choice.configure(state=DISABLED)
     global name
     seconds = v.get()
-    name = fd.askopenfilename()
+    name = filedialog.askopenfilename(filetypes=[('Media','*.mp3 *.wav *.wma *.amr *.ogg *.ape *.acc *.spx *.m4a *.mp4 *.FLAC')])
 
     try:
         f = open(name, 'r')
         f.close()
     except:
+        Rec.configure(state=NORMAL)
+        Choice.configure(state=NORMAL)
         return
 
     textline.configure(state=NORMAL)
-    textline.insert(1.0, '—Обрезаем аудио\видео\n\n')
-    root.update()
+    textline.insert(1.0, '🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑\n')
+    textline.tag_add("Arrow", '1.0', '2.48')
+    textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
+    textline.insert(1.0, '—Обрезаем аудио\видео\n')
     textline.configure(state=DISABLED)
-    
+    root.update()
+
     audio.a_intercept(f'"{name}"',0,seconds,f'"{pathname}\Logs\output_0.mp3"')
+    if os.path.exists(f'{pathname}/Logs/output_0.mp3'):
+        pass
+    else:
+        try:
+            Art.grid_forget()
+            Photo_Image.grid_forget()
+            root.update()
+        except:
+            pass
+        textline.configure(state=NORMAL)
+        textline.insert(1.0, f'У медиа файла отсутствует аудио дорожка или формат не поддерживается\n\n')
+        textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
+        textline.tag_add("Arrow", '1.0', '2.48')
+        textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
+        root.update()
+        Rec.configure(state=NORMAL)
+        Choice.configure(state=NORMAL)
+        textline.configure(state=DISABLED)
+        return
     audio.a_volume(f'"{pathname}\Logs\output_0.mp3"',2,f'"{pathname}\Logs\output.mp3"')
         
     textline.configure(state=NORMAL)
-    textline.insert(1.0, f'\n—{name}\n')
-    root.update()
+    textline.insert(1.0, f'\n\n—{name}\n')
     textline.configure(state=DISABLED)
+    root.update()
 
     func(f'{pathname}\Logs\output.mp3')
     
-#Подготовка ключей для сервиса
+# Подготовка ключей для сервиса
 access_key = AK
 access_secret = SK
-requrl = f"http://{H}/v1/identify"
-
+requrl = f"http://identify-{H}.acrcloud.com/v1/identify"
 http_method = "POST"
-http_uri = "/v1/identify"
+http_url = "/v1/identify"
 data_type = "audio"
 signature_version = "1"
 timestamp = time.time()
 
+requrl_meta = "https://eu-api-v2.acrcloud.com/api/external-metadata/tracks"
+Token=TK
+
+#создание ссылок
+class HyperLinks():
+    def HyperLinkId(ServiceName,Number):
+        if(ServiceName=='YouTube'):
+            Youtube_id=templates['metadata']['music'][Number]['external_metadata']['youtube']['vid']
+        elif(ServiceName=='Spotify'):
+            Spotify_id=templates['metadata']['music'][Number]['external_metadata']['spotify']['track']['id']
+        else:
+            Deezer_id=templates['metadata']['music'][Number]['external_metadata']['deezer']['track']['id']
+        
+        textline.insert(1.0, f' — {ServiceName}')
+        if(ServiceName=='YouTube'):
+            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.10') 
+        elif(ServiceName=='Spotify'):
+            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.10')
+        else:
+            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.9')
+        
+        textline.tag_config(f'{ServiceName}_Link_{Number}', foreground='#409eff', underline=True)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Enter>', show_hand_cursor)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Leave>', show_xterm_cursor)
+        if(ServiceName=='YouTube'):
+            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',lambda e: webbrowser.open(f'https://www.youtube.com/watch?v={Youtube_id}') )
+        elif(ServiceName=='Spotify'):
+            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',lambda e: webbrowser.open(f'https://open.spotify.com/track/{Spotify_id}'))
+        else:
+            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',lambda e: webbrowser.open(f'https://www.deezer.com/us/track/{Deezer_id}'))
+
+    def HyperLinkSearch(ServiceName,Number,Artist,Title):
+        textline.insert(1.0, f' — {ServiceName}')
+        if(ServiceName=='SoundCloud'):
+            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.13')
+        elif(ServiceName=='VK Music'):
+            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.11')
+        else:
+            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.10')
+        
+        textline.tag_config(f'{ServiceName}_Link_{Number}', foreground='#409eff', underline=True)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Enter>', show_hand_cursor)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Leave>', show_xterm_cursor)
+        if(ServiceName=='SoundCloud'):
+            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',  lambda e: webbrowser.open(f'https://soundcloud.com/search?q={Artist} {Title}'))
+        elif(ServiceName=='VK Music'):
+            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',  lambda e: webbrowser.open(f'https://vk.com/audio?q={Artist} {Title}'))
+        else:
+            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',  lambda e: webbrowser.open(f'https://www.youtube.com/results?search_query={Artist} {Title}'))
+
+#Главная функция реквестов и вывода
 def func(name):
-    string_to_sign = http_method + "\n" + http_uri + "\n" + access_key + "\n" + data_type + "\n" + signature_version + "\n" + str(timestamp)
+    string_to_sign = http_method + "\n" + http_url + "\n" + access_key + "\n" + data_type + "\n" + signature_version + "\n" + str(timestamp)
     sign = base64.b64encode(hmac.new(access_secret.encode('ascii'), string_to_sign.encode('ascii'),digestmod=hashlib.sha1).digest()).decode('ascii')
     global sample_bytes
     sample_bytes = os.path.getsize(name)
 
     files = [
-        ('sample', ('1.mp4', open(f'{name}', 'rb'), 'audio/mpeg'))
+        ('sample', (f'{name}', open(f'{name}', 'rb'), 'audio/mpeg'))
     ]
 
     #данные лога
@@ -283,61 +453,179 @@ def func(name):
             "signature_version": signature_version}
 
     #получение результата с сервиса и отправка файлов
-    try: 
+    try:
         r = requests.post(requrl, files=files, data=data)
         r.encoding = "utf-8"
 
-        #запись вывода в лог файл
-        with open(f'{pathname}/Logs/log.json','w+',encoding='utf-8') as log:
-            log.write(r.text)
-        with open(f'{pathname}/Logs/log.json','r',encoding='utf-8') as log:
-            global templates
-            templates = json.load(log)
+        global templates
+        templates = json.loads(r.text)
 
         #вывод лога в текстовое окно приложения
         textline.configure(state=NORMAL)
         try:
-            Album=templates['metadata']['music'][0]['album']['name']
-            try:
-                Artist=templates ['metadata']['music'][0]['artists'][0]['name']
+            try:#Сколько найдено песен
+                NumberOfMusics=0
+                for i in range(100):
+                    templates['metadata']['music'][i]['title']
+                    NumberOfMusics+=1
             except:
+                i=0
+
+            if(NumberOfMusics==0):#перестраховка на ошибку
+                raise
+        
+            if(Token!=''):
+                global Art,Photo_Image
                 try:
-                    Artist=templates ['metadata']['music'][0]['artists'][0]['name'][0]
+                    Art.grid_forget()
+                    Photo_Image.grid_forget()
                 except:
-                    Artist=templates['metadata']['music'][0]['label']
-            Title=templates['metadata']['music'][0]['title']
-            textline.insert(1.0,f'Альбом — {Album}\n{Artist} — {Title}')
+                    pass
+
+                try:
+                    params = {'isrc': templates['metadata']['music'][0]['external_ids']['isrc']}
+                    header={"Authorization": f"Bearer {Token}"}
+                    r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
+                    templates_meta = json.loads(r_meta.text)
+                except:
+                    try:
+                        if(NumberOfMusics>=2):
+                            params = {'isrc': templates['metadata']['music'][1]['external_ids']['isrc']}
+                            header={"Authorization": f"Bearer {Token}"}
+                            r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
+                            templates_meta = json.loads(r_meta.text)
+                    except:
+                        Art.grid_forget()
+                        Photo_Image.grid_forget()
+                        root.update()
+                try:
+                    image_url=templates_meta['data'][0]['album']['covers']['large']
+                    response=requests.get(image_url)
+                    photo = ImageTk.PhotoImage(Image.open(BytesIO(response.content)).resize((100,100),Image.ANTIALIAS))
+                    Photo_Image = Label(LeftMenu,image=photo,borderwidth=0)
+                    Photo_Image.image = photo
+                    Photo_Image.grid(row=3,column=0,pady=10)
+                except:
+                    pass
+
+                Art=Text(LeftMenu,state=NORMAL,width=22,height=5,wrap="word",font=('Microsoft Sans Serif',11),borderwidth=0,bg='#304156',fg="#bfcbd9")
+                Art.tag_configure("center", justify='center')
+                Art.insert(1.0,templates['metadata']['music'][0]['title'])
+                Art.insert(1.0,templates['metadata']['music'][0]['artists'][0]['name']+'\n')
+                Art.tag_add("center", "1.0", "end")
+                Art.configure(state=DISABLED)
+                Art.grid(row=4,column=0)
+
+            try:
+                for i in range(NumberOfMusics):
+                    if(NumberOfMusics==1):
+                        pass
+                    else:
+                        if(i==0):
+                            pass
+                        elif(i<=NumberOfMusics-2):
+                            if(templates['metadata']['music'][i-1]['external_ids']['isrc']==templates['metadata']['music'][i]['external_ids']['isrc']):
+                                textline.insert(1.0, '\n\n|\n\n')
+                                continue
+                            else:
+                                textline.insert(1.0, '\n\n|\n\n')
+                        elif(i==NumberOfMusics-1):
+                            if(templates['metadata']['music'][NumberOfMusics-1]['external_ids']['isrc']==templates['metadata']['music'][i-1]['external_ids']['isrc']):
+                                if(textline.get("1.0","5.0")=="\n\n|\n\n"):
+                                    textline.delete("1.0","5.0")
+                                raise
+                            else:
+                                if(textline.get("1.0","5.0")!="\n\n|\n\n"):
+                                    textline.insert(1.0, '\n\n|\n\n')
+
+                    Album=templates['metadata']['music'][i]['album']['name']
+                    Artist=templates['metadata']['music'][i]['artists'][0]['name']
+                    Title=templates['metadata']['music'][i]['title']
+                    textline.insert(1.0,f'\nАльбом — {Album}\n{Artist} — {Title}')
+
+                    #SoundCloud ссылка в любом случае
+                    HyperLinks.HyperLinkSearch('SoundCloud',i,Artist,Title)
+                    #VK ссылка в любом случае
+                    HyperLinks.HyperLinkSearch('VK Music',i,Artist,Title)
+                    
+                    try:#YouTube ссылка при наличие
+                        HyperLinks.HyperLinkId('YouTube',i)
+                    except:#YouTube ссылка если нет id
+                        HyperLinks.HyperLinkSearch('YouTube',i,Artist,Title)
+
+                    try:#Spotify ссылка при наличие
+                        HyperLinks.HyperLinkId('Spotify',i)
+                    except:
+                        pass
+                        
+                    try:#Deezer ссылка при наличие
+                        HyperLinks.HyperLinkId('Deezer',i)
+                    except:
+                        pass 
+
+                    if(textline.get(1.0,1.3)!="—"):
+                        textline.delete(1.0,1.3)
+            except:
+                pass
         except:
             if(templates['status']['msg']=="No result"):
                 textline.insert(1.0,'Нет результа, попробуйте ещё раз')
             elif(templates['status']['msg']=="invalid signature"):
-                textline.insert(1.0,'Ключи введены не правильно или не введены вовсе')
+                textline.insert(1.0,'«Токен» введен неправильно или не введен вовсе')
             elif(templates['status']['msg']=="Can't generate fingerprint"):
                 textline.insert(1.0,'Отсутствует звук, кромешная тишина')
+            elif(templates['status']['msg']=="requests limit exceeded, please upgrade your account"):
+                textline.insert(1.0,'Закончился днейвной лимит ключей')
+            elif('Recognition service error' in templates['status']['msg']):
+                textline.insert(1.0,'Сервис временно не доступен')
             else:
-                textline.insert(1.0,'Закончился днейвной лимит ключей или брандмауэр блокирует соединение')
-        root.update()
-        textline.configure(state=DISABLED)
-        
+                textline.insert(1.0,'Блокируется соединение')
+            try:
+                Art.grid_forget()
+                Photo_Image.grid_forget()
+                root.update()
+            except:
+                pass
     except:
+        try:
+            Art.grid_forget()
+            Photo_Image.grid_forget()
+            root.update()
+        except:
+            pass
         textline.configure(state=NORMAL)
-        textline.insert(1.0, f'«Host» введен неправильно или не введен вовсе\n')
+        textline.insert(1.0, f'«Токен» введен неправильно или не введен вовсе')
         root.update()
-        textline.configure(state=DISABLED)
-    
+
+    textline.configure(state=NORMAL)
+    textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
+    textline.tag_add("Arrow", '1.0', '2.48')
+    textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
+    textline.configure(state=DISABLED)
+    root.update()
+
+    Rec.configure(state=NORMAL)
+    Choice.configure(state=NORMAL)
     winsound.MessageBeep() #сигнал о завершение
 
-v=IntVar()
-
-def _onKeyRelease(event):#копирование на всех языках
+#Базовые действия на всех языках
+def _onKeyRelease(event):
     ctrl  = (event.state & 0x4) != 0
-    if event.keycode==67 and  ctrl and event.keysym.lower() != "c":
+    if event.keycode==67 and ctrl and event.keysym.lower() != "c":
         event.widget.event_generate("<<Copy>>")
+    if event.keycode==86 and ctrl and event.keysym.lower() != "v":
+        event.widget.event_generate("<<Paste>>")
+    if event.keycode==65 and ctrl and event.keysym.lower() != "a":
+        event.widget.event_generate("<<SelectAll>>")
+    if event.keycode==88 and ctrl and event.keysym.lower() != "x": 
+        event.widget.event_generate("<<Cut>>")
 root.bind("<Key>", _onKeyRelease, "+")
 
+#изменение ширины 0 колонки и 1 строки
 root.grid_columnconfigure(0, weight = 1)
 root.grid_rowconfigure(1, weight = 1)
 
+#Подготовка иконок записи и файла
 FileBase=b'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABJmlDQ1BBZG9iZSBSR0IgKDE5OTgpAAAoz2NgYDJwdHFyZRJgYMjNKykKcndSiIiMUmA/z8DGwMwABonJxQWOAQE+IHZefl4qAwb4do2BEURf1gWZxUAa4EouKCoB0n+A2CgltTiZgYHRAMjOLi8pAIozzgGyRZKywewNIHZRSJAzkH0EyOZLh7CvgNhJEPYTELsI6Akg+wtIfTqYzcQBNgfClgGxS1IrQPYyOOcXVBZlpmeUKBhaWloqOKbkJ6UqBFcWl6TmFit45iXnFxXkFyWWpKYA1ULcBwaCEIWgENMAarTQZKAyAMUDhPU5EBy+jGJnEGIIkFxaVAZlMjIZE+YjzJgjwcDgv5SBgeUPQsykl4FhgQ4DA/9UhJiaIQODgD4Dw745AMDGT/0ZOjZcAAAACXBIWXMAAAsTAAALEwEAmpwYAAAE7mlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNi4wLWMwMDYgNzkuZGFiYWNiYiwgMjAyMS8wNC8xNC0wMDozOTo0NCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnBob3Rvc2hvcD0iaHR0cDovL25zLmFkb2JlLmNvbS9waG90b3Nob3AvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0RXZ0PSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VFdmVudCMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIyLjQgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyMi0xMC0xOVQxOTozMjo0NCswMzowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjItMTAtMTlUMTk6Mzc6MDErMDM6MDAiIHhtcDpNZXRhZGF0YURhdGU9IjIwMjItMTAtMTlUMTk6Mzc6MDErMDM6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiBwaG90b3Nob3A6Q29sb3JNb2RlPSIzIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjY5ZmU0Mjc3LTM4YWMtMGI0Yi1hYjAzLWZkMTMyYTM3YjBkYSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo2OWZlNDI3Ny0zOGFjLTBiNGItYWIwMy1mZDEzMmEzN2IwZGEiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDo2OWZlNDI3Ny0zOGFjLTBiNGItYWIwMy1mZDEzMmEzN2IwZGEiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjY5ZmU0Mjc3LTM4YWMtMGI0Yi1hYjAzLWZkMTMyYTM3YjBkYSIgc3RFdnQ6d2hlbj0iMjAyMi0xMC0xOVQxOTozMjo0NCswMzowMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIyLjQgKFdpbmRvd3MpIi8+IDwvcmRmOlNlcT4gPC94bXBNTTpIaXN0b3J5PiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PqwwApkAAAJsSURBVGje7ZlBaNNQGMcrjqEwplWUOQrCpDLoseK1DLpBLxaE7TQ8lcHmYYhgETw4aJ0XBaGD9rSBPVS8eYqMjR52aGVjh13GYEVBHIpohWkHc8b/c1/gGV7TtI3Ji7zAD5r3XvK9X/O9l7wkEPiHW7VafQh0B4ka59Z1/Q9+6rx7AoLOPwFTHZJxVUDQ+ftdni9qKUANnCJr6nzRgXNOthLQfcT/LZBxOJ2cwnYKTQUk3OwMYiWgBJSAElACSkAJKAEl4IEAYg6CCdBv0eYiSIN5EJJN4DXF/gJy4HqpVDph51hZBNYFi5aP4CVbS4MkpdAlEITcSVkF3oGvNldl35mYbAIFcAokwBxYBt8sJPKyCSw2qb9AKRQH42DXEJZxDFTANAjbuWIyD2LGJ/AKPAYz9O+Pgh1ZBTbAWhuvV6QTKHA3rST986s0O/30jYBo0zStB/XnwBDY8p1AO4P4eRevwJtxxQjOHhGwfw3cAjfAeacFnGajXC73UuBw9Xjj6xtgX2aBBAUdAB9azSodC7iQ5wsU9AjMgrNgGKw0E6B0S9H0yq7UHn1reOuFwHsKumQqD4IfZgHqfNH2fcAFgQMKeldQZ9xZc1xZiuvoJrgHntJTqCcC2xRUM5VfBYdUd0eQ55uVSqWXK4+BX14IPDB9M4vTR4saNxuFuPYNKk8LzlXzQuA0eGORz7dN7T8bn2b5cnY1UFanuqxrAhS8j9a8fB6z/L8pEH7BrbxiXOfz3LEjrgqYrkYEXLZoE+FmJ50WMXVuX/trTSzpu6AxLpV4NDb9Si9AEmfoeeoZeMTSRvhaxfjhV3wv8BtR4EcJoAtCKQAAAABJRU5ErkJggg=='
 photoimage = PhotoImage(data=FileBase)
 PNG_File = photoimage.subsample(2, 2)
@@ -345,37 +633,57 @@ RecordBase=b'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABMWlDQ1BBZG9iZSBSR0I
 photoimage = PhotoImage(data=RecordBase)
 PNG_Record = photoimage.subsample(2, 2)
 
+#Переменная для одного только шрифта без изменений размера
 Helvetica = Font(family='Microsoft Sans Serif')
 
+#Разметка пространства
 ProgName = Frame(root, bg ="#2b2f3a",width=22,height=22)
 ProgName.grid(row = 0, column = 0, sticky = "nesw")
 Label(ProgName,text='ACR of Music',width=14,height=2,bg="#2b2f3a",fg="#bfcbd9",font=('Microsoft Sans Serif',14,'bold')).grid(row=0,column=0)
 
-Rec=Button(LeftMenu,bg="#304156",image=PNG_Record,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Запись c ПК',command=record,width=171,height=40)
+#Кнопки записи, файла, настроек и инструкции
+Rec=Button(LeftMenu,bg="#304156",image=PNG_Record,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Запись c ПК',command=record,width=173,height=40)
 Rec.grid(row=0,column=0,sticky="w")
-Choice=Button(LeftMenu,bg="#304156",image=PNG_File,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Выбор файла',command=callback,width=171,height=40)
+Choice=Button(LeftMenu,bg="#304156",image=PNG_File,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Выбор файла',command=callback,width=173,height=40)
 Choice.grid(row=1,column=0,sticky="w")
-set=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Настройки',command=setting,width=22,height=2)
-set.grid(row=2,column=0,sticky="s")
-fq=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Важные моменты',command=FAQ,width=22,height=2)
-fq.grid(row=3,column=0,sticky="s")
+set=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Настройки',command=windows.setting,width=22,height=2)
+set.grid(row=3,column=0,sticky="s")
+fq=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Важные моменты',command=windows.FAQ,width=22,height=2)
+fq.grid(row=4,column=0,sticky="s")
 
+#поверх всех окон
+TopVar = IntVar()
+def TOPMOST():
+    if(TopVar.get()==0):
+        root.attributes("-topmost",False)
+        root.update()
+    else:
+        root.attributes("-topmost",True)
+        root.update()
+topmost=Checkbutton(root,bg="#304156",selectcolor="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,text='Поверх всех окон',variable=TopVar,onvalue=1, offvalue=0,command=TOPMOST,width=22,height=2)
+topmost.grid(row=2,column=0,sticky="s")
+
+#Бинды на ховер
 Rec.bind("<Enter>", on_enter)
 Choice.bind("<Enter>", on_enter)
 set.bind("<Enter>", on_enter)
 fq.bind("<Enter>", on_enter)
+topmost.bind("<Enter>", on_enter)
 Rec.bind("<Leave>", on_leave)
 Choice.bind("<Leave>", on_leave)
 set.bind("<Leave>", on_leave)
 fq.bind("<Leave>", on_leave)
+topmost.bind("<Leave>", on_leave)
 
+#Ползунок длительности
+v=IntVar()
 scale = Scale(variable = v, from_ = 5.0, to = 20.0,bg='#304156',highlightbackground='#304156',activebackground='#263445',fg='#bfcbd9',troughcolor='#2b2f3a', orient = HORIZONTAL)
 scale.grid(row=0,column=1,columnspan=2,sticky="nsew")
 scale.set(S)
 
 #Вывод данных файла
-textline = Text(root,state=DISABLED,width=60,borderwidth=0,bg='#bfcbd9',font=('Microsoft Sans Serif',11))
-textline.grid(row=1,rowspan=3,column=1,sticky='sen')
+textline = Text(root,state=DISABLED,width=60,borderwidth=0,bg='#bfcbd9',wrap="word",font=('Microsoft Sans Serif',11))
+textline.grid(row=1,rowspan=4,column=1,sticky='sen')
 
 #удаление и сохранение данных при закрытие
 def on_closing():
@@ -385,10 +693,6 @@ def on_closing():
         os.remove(f'{pathname}/Logs/output.mp3')
     if os.path.exists(f'{pathname}/Logs/output_0.mp3'):
         os.remove(f'{pathname}/Logs/output_0.mp3')
-    if os.path.exists(f'{pathname}/Logs/log.json'):
-        os.remove(f'{pathname}/Logs/log.json')
-    if os.path.exists(f'{pathname}/Logs/script.cmd'):
-        os.remove(f'{pathname}/Logs/script.cmd')
     if os.path.exists(f'{pathname}/Logs/data_file.json'):
         with open(f'{pathname}/Logs/data_file.json', "r") as write_file:
             f=json.load(write_file)
