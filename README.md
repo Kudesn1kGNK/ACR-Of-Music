@@ -12,6 +12,8 @@ Recording only via Realtek Mix or media files, Russian and English OS are suppor
 
 ## On linux
 
+> installation and updating preferably via «apt install»
+
 1) sudo apt install pavucontrol
 
 2) open pavucontrol and follow the instruction
