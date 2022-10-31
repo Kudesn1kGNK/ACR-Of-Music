@@ -116,7 +116,7 @@ class windows:
             '''
         Rules.insert(1.0,text)
 
-        Rules.tag_add(f'tok', '5.52', '5.57')
+        Rules.tag_add(f'tok', '4.52', '4.57')
         Rules.tag_config(f'tok', foreground='#409eff', underline=True)
         Rules.tag_bind(f'tok', '<Enter>', show_hand_cursor)
         Rules.tag_bind(f'tok', '<Leave>', show_xterm_cursor)
