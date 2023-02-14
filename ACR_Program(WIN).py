@@ -90,7 +90,7 @@ textTK = StringVar()
 class windows:
     def FAQ():
         faq=tk.Toplevel(root)
-        faq.grab_set()
+        # faq.grab_set()
         faq.attributes("-topmost",True)
         faq.resizable(width=0, height=0)
         faq.title('Важные моменты пользования')
@@ -129,7 +129,7 @@ class windows:
     def setting():
         settings=tk.Toplevel(root)
         settings.bind("<Key>", _onKeyRelease, "+")
-        settings.grab_set()
+        # settings.grab_set()
         settings.attributes("-topmost",True)
         settings.resizable(width=0, height=0)
         settings.title('Настройка ключей')
@@ -386,9 +386,10 @@ timestamp = time.time()
 requrl_meta = "https://eu-api-v2.acrcloud.com/api/external-metadata/tracks"
 Token=TK
 
+LinkId=0
 #создание ссылок
 class HyperLinks():
-    def HyperLinkId(ServiceName,Number):
+    def HyperLinkId(ServiceName,Number,LinkId):
         if(ServiceName=='YouTube'):
             Youtube_id=templates['metadata']['music'][Number]['external_metadata']['youtube']['vid']
         elif(ServiceName=='Spotify'):
@@ -398,40 +399,40 @@ class HyperLinks():
         
         textline.insert(1.0, f' — {ServiceName}')
         if(ServiceName=='YouTube'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.10') 
+            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.10') 
         elif(ServiceName=='Spotify'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.10')
+            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.10')
         else:
-            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.9')
+            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.9')
         
-        textline.tag_config(f'{ServiceName}_Link_{Number}', foreground='#409eff', underline=True)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Enter>', show_hand_cursor)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Leave>', show_xterm_cursor)
+        textline.tag_config(f'{ServiceName}_Link_{Number}{LinkId}', foreground='#409eff', underline=True)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Enter>', show_hand_cursor)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Leave>', show_xterm_cursor)
         if(ServiceName=='YouTube'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',lambda e: webbrowser.open(f'https://www.youtube.com/watch?v={Youtube_id}') )
+            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.youtube.com/watch?v={Youtube_id}') )
         elif(ServiceName=='Spotify'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',lambda e: webbrowser.open(f'https://open.spotify.com/track/{Spotify_id}'))
+            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://open.spotify.com/track/{Spotify_id}'))
         else:
-            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',lambda e: webbrowser.open(f'https://www.deezer.com/us/track/{Deezer_id}'))
+            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.deezer.com/us/track/{Deezer_id}'))
 
-    def HyperLinkSearch(ServiceName,Number,Artist,Title):
+    def HyperLinkSearch(ServiceName,Number,LinkId,Artist,Title):
         textline.insert(1.0, f' — {ServiceName}')
         if(ServiceName=='SoundCloud'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.13')
+            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.13')
         elif(ServiceName=='VK Music'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.11')
+            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.11')
         else:
-            textline.tag_add(f'{ServiceName}_Link_{Number}', '1.3', '1.10')
+            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.10')
         
-        textline.tag_config(f'{ServiceName}_Link_{Number}', foreground='#409eff', underline=True)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Enter>', show_hand_cursor)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Leave>', show_xterm_cursor)
+        textline.tag_config(f'{ServiceName}_Link_{Number}{LinkId}', foreground='#409eff', underline=True)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Enter>', show_hand_cursor)
+        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Leave>', show_xterm_cursor)
         if(ServiceName=='SoundCloud'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',  lambda e: webbrowser.open(f'https://soundcloud.com/search?q={Artist} {Title}'))
+            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://soundcloud.com/search?q={Artist} {Title}'))
         elif(ServiceName=='VK Music'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',  lambda e: webbrowser.open(f'https://vk.com/audio?q={Artist} {Title}'))
+            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://vk.com/audio?q={Artist} {Title}'))
         else:
-            textline.tag_bind(f'{ServiceName}_Link_{Number}', '<Button-1>',  lambda e: webbrowser.open(f'https://www.youtube.com/results?search_query={Artist} {Title}'))
+            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://www.youtube.com/results?search_query={Artist} {Title}'))
 
 #Главная функция реквестов и вывода
 def func(name):
@@ -473,48 +474,6 @@ def func(name):
 
             if(NumberOfMusics==0):#перестраховка на ошибку
                 raise
-        
-            if(Token!=''):
-                global Art,Photo_Image
-                try:
-                    Art.grid_forget()
-                    Photo_Image.grid_forget()
-                except:
-                    pass
-
-                try:
-                    params = {'isrc': templates['metadata']['music'][0]['external_ids']['isrc']}
-                    header={"Authorization": f"Bearer {Token}"}
-                    r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
-                    templates_meta = json.loads(r_meta.text)
-                except:
-                    try:
-                        if(NumberOfMusics>=2):
-                            params = {'isrc': templates['metadata']['music'][1]['external_ids']['isrc']}
-                            header={"Authorization": f"Bearer {Token}"}
-                            r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
-                            templates_meta = json.loads(r_meta.text)
-                    except:
-                        Art.grid_forget()
-                        Photo_Image.grid_forget()
-                        root.update()
-                try:
-                    image_url=templates_meta['data'][0]['album']['covers']['large']
-                    response=requests.get(image_url)
-                    photo = ImageTk.PhotoImage(Image.open(BytesIO(response.content)).resize((100,100),Image.ANTIALIAS))
-                    Photo_Image = Label(LeftMenu,image=photo,borderwidth=0)
-                    Photo_Image.image = photo
-                    Photo_Image.grid(row=3,column=0,pady=10)
-                except:
-                    pass
-
-                Art=Text(LeftMenu,state=NORMAL,width=22,height=5,wrap="word",font=('Microsoft Sans Serif',11),borderwidth=0,bg='#304156',fg="#bfcbd9")
-                Art.tag_configure("center", justify='center')
-                Art.insert(1.0,templates['metadata']['music'][0]['title'])
-                Art.insert(1.0,templates['metadata']['music'][0]['artists'][0]['name']+'\n')
-                Art.tag_add("center", "1.0", "end")
-                Art.configure(state=DISABLED)
-                Art.grid(row=4,column=0)
 
             try:
                 for i in range(NumberOfMusics):
@@ -543,30 +502,91 @@ def func(name):
                     Title=templates['metadata']['music'][i]['title']
                     textline.insert(1.0,f'\nАльбом — {Album}\n{Artist} — {Title}')
 
+                    global LinkId
                     #SoundCloud ссылка в любом случае
-                    HyperLinks.HyperLinkSearch('SoundCloud',i,Artist,Title)
+                    HyperLinks.HyperLinkSearch('SoundCloud',i,LinkId,Artist,Title)
                     #VK ссылка в любом случае
-                    HyperLinks.HyperLinkSearch('VK Music',i,Artist,Title)
+                    HyperLinks.HyperLinkSearch('VK Music',i,LinkId,Artist,Title)
                     
                     try:#YouTube ссылка при наличие
-                        HyperLinks.HyperLinkId('YouTube',i)
+                        HyperLinks.HyperLinkId('YouTube',i,LinkId)
                     except:#YouTube ссылка если нет id
-                        HyperLinks.HyperLinkSearch('YouTube',i,Artist,Title)
+                        HyperLinks.HyperLinkSearch('YouTube',i,LinkId,Artist,Title)
 
                     try:#Spotify ссылка при наличие
-                        HyperLinks.HyperLinkId('Spotify',i)
+                        HyperLinks.HyperLinkId('Spotify',i,LinkId)
                     except:
                         pass
                         
                     try:#Deezer ссылка при наличие
-                        HyperLinks.HyperLinkId('Deezer',i)
+                        HyperLinks.HyperLinkId('Deezer',i,LinkId)
                     except:
                         pass 
-
+    
                     if(textline.get(1.0,1.3)!="—"):
                         textline.delete(1.0,1.3)
+
+                    LinkId+=1
             except:
                 pass
+
+            if(Token!=''):
+                global Art,Photo_Image
+                try:
+                    Art.grid_forget()
+                    Photo_Image.grid_forget()
+                except:
+                    pass
+
+                try:
+                    params = {'isrc': templates['metadata']['music'][0]['external_ids']['isrc']}
+                    header={"Authorization": f"Bearer {Token}"}
+                    r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
+                    templates_meta = json.loads(r_meta.text)
+                    try:
+                        image_url=templates_meta['data'][0]['album']['cover']
+                    except:
+                        params = {'query': f'{Artist} — {Title}'}
+                        header={"Authorization": f"Bearer {Token}"}
+                        r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
+                        templates_meta = json.loads(r_meta.text)
+                except:
+                    try:
+                        if(NumberOfMusics>=2):
+                            params = {'isrc': templates['metadata']['music'][1]['external_ids']['isrc']}
+                            header={"Authorization": f"Bearer {Token}"}
+                            r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
+                            templates_meta = json.loads(r_meta.text)
+                            try:
+                                image_url=templates_meta['data'][0]['album']['cover']
+                            except:
+                                params = {'query': f'{Artist} — {Title}'}
+                                header={"Authorization": f"Bearer {Token}"}
+                                r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
+                                templates_meta = json.loads(r_meta.text)
+                            
+                    except:
+                        Art.grid_forget()
+                        Photo_Image.grid_forget()
+                        root.update()
+                try:
+                    image_url=templates_meta['data'][0]['album']['cover']
+                    response=requests.get(image_url)
+                    photo = ImageTk.PhotoImage(Image.open(BytesIO(response.content)).resize((100,100),Image.ANTIALIAS))
+                    Photo_Image = Label(LeftMenu,image=photo,borderwidth=0)
+                    Photo_Image.image = photo
+                    Photo_Image.grid(row=3,column=0,pady=10)
+                except:
+                    pass
+
+                Art=Text(LeftMenu,state=NORMAL,width=22,height=5,wrap="word",font=('Microsoft Sans Serif',11),borderwidth=0,bg='#304156',fg="#bfcbd9")
+                Art.tag_configure("center", justify='center')
+                Art.insert(1.0,templates['metadata']['music'][0]['title'])
+                Art.insert(1.0,templates['metadata']['music'][0]['artists'][0]['name']+'\n')
+                Art.tag_add("center", "1.0", "end")
+                Art.configure(state=DISABLED)
+                Art.grid(row=4,column=0)
+
         except:
             if(templates['status']['msg']=="No result"):
                 textline.insert(1.0,'Нет результа, попробуйте ещё раз')
