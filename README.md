@@ -1,6 +1,6 @@
 # ACR Of Music
 ____
-https://www.acrcloud.com/ — The whole program works thanks to the open API ACRClour
+https://www.acrcloud.com/ — The whole program works thanks to the open API ACRCloud
 ____
 ![image](https://user-images.githubusercontent.com/65385582/198888497-72bcee78-7f29-4bde-9bf3-9c53c1f9072a.png)
 
