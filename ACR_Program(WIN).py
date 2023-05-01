@@ -1,15 +1,18 @@
 #-*- coding:utf-8 -*-
 #python 3.9
-import json,time,base64,hashlib,hmac,requests,pyaudio,os,wave,os.path,sys
+import json,time,base64,hashlib,hmac,requests,os,os.path,sys,pythoncom
 import webbrowser
 import winsound
 from tkinter import filedialog,Entry
 from tkinter import *
 from tkinter.font import Font
 import tkinter as tk
+import threading
 from ffmpeg import audio
 from PIL import Image,ImageTk
 from io import BytesIO
+import numpy as np
+from scipy.io.wavfile import write
 
 root = tk.Tk()
 
@@ -109,8 +112,8 @@ class windows:
         Rules=Text(faqFrame,state=NORMAL,height=11,width=80,font=('Microsoft Sans Serif',12),bg="#304156",fg="#bfcbd9",wrap='word',borderwidth=0)
         Rules.grid(row=0,column=0,sticky='w')
         text='''1: Ползунком выбирается продолжительность в секундах как для записи, так и для файла.
-2: Не трогать программу, пока идет запись.
-3: Обязательным условием записи с ПК — наличие включенного микшера.
+2: Звук записывается с устройства воспроизведения по умолчанию.
+3: При записи звук на устройстве воспроизведения по умолчанию не должен быть выключен.
 4: Прямая ссылка на токен для европейского региона: Токен.
 Перейдя по ссылке, войдите или зарегистрируйтесь на данном сервисе. После нажмите «Create Token» задайте любое удобное имя, выберите все пункты доступа и после создания нажмите «View» скопируйте строку из 1600 символов и вставьте в соответствующее поле в настройках.
             '''
@@ -249,6 +252,9 @@ def ent():
 
 #функция записи с микшера и записывание в файл формата wav
 def record():
+    pythoncom.CoInitialize()
+    import soundcard as sc #импортировать только отдельным потоком
+
     try:
         Rec.configure(state=DISABLED)
         Choice.configure(state=DISABLED)
@@ -260,46 +266,25 @@ def record():
         textline.configure(state=DISABLED)
         root.update()
 
-        chunk = 1024
-        sample_format = pyaudio.paInt16
-        channels = 2
-        rate = 44100
         seconds = v.get()
-        filename = f'{pathname}/Logs/output.wav'
-        p = pyaudio.PyAudio()
 
-        for i in range(p.get_device_count()):
-            if ((('Stereo Mix' in p.get_device_info_by_index(i)['name'])or('Стерео микшер' in p.get_device_info_by_index(i)['name'])) and (p.get_device_info_by_index(i)['hostApi']==0)):
-                global index
-                index=i
+        default_speaker = sc.default_speaker()
+        mics = sc.all_microphones(include_loopback=True)
+        for j in range(len(mics)):
+            if((default_speaker.name in mics[j].name)and(mics[j].isloopback)):
                 textline.configure(state=NORMAL)
                 textline.insert(1.0, f'\n\nЗапись|{seconds}s\n')
                 textline.configure(state=DISABLED)
                 root.update()
                 break
+            
+        default_mic = mics[j]
 
-        stream = p.open(format=sample_format,
-        channels=channels,
-        rate=rate,
-        frames_per_buffer=chunk,
-        input_device_index=index,
-        input=True)
-
-        frames = []
-
-        for i in range(0, int(rate / chunk * seconds)):
-            data = stream.read(chunk)
-            frames.append(data)
-        stream.stop_stream()
-        stream.close()
-        p.terminate()
-        
-        wf = wave.open(filename, 'wb')
-        wf.setnchannels(channels)
-        wf.setsampwidth(p.get_sample_size(sample_format))
-        wf.setframerate(rate)
-        wf.writeframes(b''.join(frames))
-        wf.close()
+        with default_mic.recorder(samplerate=44100) as mic, \
+            default_speaker.player(samplerate=44100) as sp:
+                data = mic.record(numframes=44100*seconds)
+                scaled = np.int16(data / np.max(np.abs(data)) * 10000)
+                write(f'{pathname}/Logs/output.wav', 44100, scaled)
         global name
         name=f'{pathname}/Logs/output.wav'
         func(name)
@@ -307,7 +292,7 @@ def record():
         Rec.configure(state=NORMAL)
         Choice.configure(state=NORMAL)
         textline.configure(state=NORMAL)
-        textline.insert(1.0, f'Включите микшер и перезапустите программу\n')
+        textline.insert(1.0, f'Устройство воспроизведения по умолчанию не обнаружено\n')
         textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
         textline.tag_add("Arrow", '1.0', '2.48')
         textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
@@ -318,10 +303,8 @@ def record():
 def callback():
     if os.path.exists(f'{pathname}/Logs/output.wav'):
         os.remove(f'{pathname}/Logs/output.wav')
-    if os.path.exists(f'{pathname}/Logs/output.mp3'):
-        os.remove(f'{pathname}/Logs/output.mp3')
-    if os.path.exists(f'{pathname}/Logs/output_0.mp3'):
-        os.remove(f'{pathname}/Logs/output_0.mp3')
+    if os.path.exists(f'{pathname}/Logs/output_0.wav'):
+        os.remove(f'{pathname}/Logs/output_0.wav')
     Rec.configure(state=DISABLED)
     Choice.configure(state=DISABLED)
     global name
@@ -344,8 +327,8 @@ def callback():
     textline.configure(state=DISABLED)
     root.update()
 
-    audio.a_intercept(f'"{name}"',0,seconds,f'"{pathname}\Logs\output_0.mp3"')
-    if os.path.exists(f'{pathname}/Logs/output_0.mp3'):
+    audio.a_intercept(f'"{name}"',0,seconds,f'"{pathname}\Logs\output_0.wav"')
+    if os.path.exists(f'{pathname}/Logs/output_0.wav'):
         pass
     else:
         try:
@@ -364,14 +347,14 @@ def callback():
         Choice.configure(state=NORMAL)
         textline.configure(state=DISABLED)
         return
-    audio.a_volume(f'"{pathname}\Logs\output_0.mp3"',2,f'"{pathname}\Logs\output.mp3"')
+    audio.a_volume(f'"{pathname}\Logs\output_0.wav"',2,f'"{pathname}\Logs\output.wav"')
         
     textline.configure(state=NORMAL)
     textline.insert(1.0, f'\n\n—{name}\n')
     textline.configure(state=DISABLED)
     root.update()
 
-    func(f'{pathname}\Logs\output.mp3')
+    func(f'{pathname}\Logs\output.wav')
     
 # Подготовка ключей для сервиса
 access_key = AK
@@ -455,8 +438,18 @@ def func(name):
 
     #получение результата с сервиса и отправка файлов
     try:
+        textline.configure(state=NORMAL)
+        if('Запись' in textline.get('1.0','3.11')):
+            textline.delete(1.0, 3.11)
+        if('Обрезаем аудио\видео' in textline.get('1.0','4.25')):
+            textline.delete(1.0, 4.25)
+        textline.insert(1.0, f'\n\nПоиск...')
+        textline.configure(state=DISABLED)
         r = requests.post(requrl, files=files, data=data)
         r.encoding = "utf-8"
+        textline.configure(state=NORMAL)
+        textline.delete(1.0, 3.8)
+        textline.configure(state=DISABLED)
 
         global templates
         templates = json.loads(r.text)
@@ -530,76 +523,91 @@ def func(name):
             except:
                 pass
 
-            if(Token!=''):
-                global Art,Photo_Image
-                try:
-                    Art.grid_forget()
-                    Photo_Image.grid_forget()
-                except:
-                    pass
+            textline.configure(state=NORMAL)
+            textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
+            textline.tag_add("Arrow", '1.0', '2.48')
+            textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
+            textline.configure(state=DISABLED)
+            root.update()
 
+            global Art,Photo_Image
+            try:
+                Art.grid_forget()
+                Photo_Image.grid_forget()
+            except:
+                pass
+
+            try:
+                params = {'isrc': templates['metadata']['music'][0]['external_ids']['isrc']}
+                header={"Authorization": f"Bearer {Token}"}
+                r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
+                templates_meta = json.loads(r_meta.text)
                 try:
-                    params = {'isrc': templates['metadata']['music'][0]['external_ids']['isrc']}
+                    try:
+                        image_url=templates_meta['data'][0]['album']['covers']['medium']
+                    except:
+                        image_url=templates_meta['data'][0]['album']['cover']
+                except:
+                    params = {'query': f'{Artist} — {Title}'}
                     header={"Authorization": f"Bearer {Token}"}
                     r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
                     templates_meta = json.loads(r_meta.text)
-                    try:
-                        image_url=templates_meta['data'][0]['album']['cover']
-                    except:
-                        params = {'query': f'{Artist} — {Title}'}
+            except:
+                try:
+                    if(NumberOfMusics>=2):
+                        params = {'isrc': templates['metadata']['music'][1]['external_ids']['isrc']}
                         header={"Authorization": f"Bearer {Token}"}
                         r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
                         templates_meta = json.loads(r_meta.text)
-                except:
-                    try:
-                        if(NumberOfMusics>=2):
-                            params = {'isrc': templates['metadata']['music'][1]['external_ids']['isrc']}
+                        try:
+                            try:
+                                image_url=templates_meta['data'][0]['album']['covers']['medium']
+                            except:
+                                image_url=templates_meta['data'][0]['album']['cover']
+                        except:
+                            params = {'query': f'{Artist} — {Title}'}
                             header={"Authorization": f"Bearer {Token}"}
                             r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
                             templates_meta = json.loads(r_meta.text)
-                            try:
-                                image_url=templates_meta['data'][0]['album']['cover']
-                            except:
-                                params = {'query': f'{Artist} — {Title}'}
-                                header={"Authorization": f"Bearer {Token}"}
-                                r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
-                                templates_meta = json.loads(r_meta.text)
-                            
-                    except:
-                        Art.grid_forget()
-                        Photo_Image.grid_forget()
-                        root.update()
-                try:
-                    image_url=templates_meta['data'][0]['album']['cover']
-                    response=requests.get(image_url)
-                    photo = ImageTk.PhotoImage(Image.open(BytesIO(response.content)).resize((100,100),Image.ANTIALIAS))
-                    Photo_Image = Label(LeftMenu,image=photo,borderwidth=0)
-                    Photo_Image.image = photo
-                    Photo_Image.grid(row=3,column=0,pady=10)
+                        
                 except:
-                    pass
+                    Art.grid_forget()
+                    Photo_Image.grid_forget()
+                    root.update()
+            try:
+                try:
+                    image_url=templates_meta['data'][0]['album']['covers']['medium']
+                except:
+                    image_url=templates_meta['data'][0]['album']['cover']
+                response=requests.get(image_url)
+                photo = ImageTk.PhotoImage(Image.open(BytesIO(response.content)).resize((100,100),Image.Resampling.LANCZOS))
+                Photo_Image = Label(LeftMenu,image=photo,borderwidth=0)
+                Photo_Image.image = photo
+                Photo_Image.grid(row=3,column=0,pady=10)
+            except:
+                pass
 
-                Art=Text(LeftMenu,state=NORMAL,width=22,height=5,wrap="word",font=('Microsoft Sans Serif',11),borderwidth=0,bg='#304156',fg="#bfcbd9")
-                Art.tag_configure("center", justify='center')
-                Art.insert(1.0,templates['metadata']['music'][0]['title'])
-                Art.insert(1.0,templates['metadata']['music'][0]['artists'][0]['name']+'\n')
-                Art.tag_add("center", "1.0", "end")
-                Art.configure(state=DISABLED)
-                Art.grid(row=4,column=0)
+            Art=Text(LeftMenu,state=NORMAL,width=22,height=5,wrap="word",font=('Microsoft Sans Serif',11),borderwidth=0,bg='#304156',fg="#bfcbd9")
+            Art.tag_configure("center", justify='center')
+            Art.insert(1.0,templates['metadata']['music'][0]['title'])
+            Art.insert(1.0,templates['metadata']['music'][0]['artists'][0]['name']+'\n')
+            Art.tag_add("center", "1.0", "end")
+            Art.configure(state=DISABLED)
+            Art.grid(row=4,column=0)
 
         except:
             if(templates['status']['msg']=="No result"):
                 textline.insert(1.0,'Нет результа, попробуйте ещё раз')
             elif(templates['status']['msg']=="invalid signature"):
                 textline.insert(1.0,'«Токен» введен неправильно или не введен вовсе')
-            elif(templates['status']['msg']=="Can't generate fingerprint"):
+            elif(('Invalid fingerprint' in templates['status']['msg'])or("Can't generate fingerprint" in templates['status']['msg'])):
                 textline.insert(1.0,'Отсутствует звук, кромешная тишина')
             elif(templates['status']['msg']=="requests limit exceeded, please upgrade your account"):
                 textline.insert(1.0,'Закончился днейвной лимит ключей')
             elif('Recognition service error' in templates['status']['msg']):
                 textline.insert(1.0,'Сервис временно не доступен')
             else:
-                textline.insert(1.0,'Блокируется соединение')
+                textline.insert(1.0,templates['status']['msg'])
             try:
                 Art.grid_forget()
                 Photo_Image.grid_forget()
@@ -617,18 +625,19 @@ def func(name):
         textline.insert(1.0, f'«Токен» введен неправильно или не введен вовсе')
         root.update()
 
-    textline.configure(state=NORMAL)
-    textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
-    textline.tag_add("Arrow", '1.0', '2.48')
-    textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
-    textline.configure(state=DISABLED)
-    root.update()
+    if(textline.get('2.0','2.48')!='🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓'):
+        textline.configure(state=NORMAL)
+        textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
+        textline.tag_add("Arrow", '1.0', '2.48')
+        textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
+        textline.configure(state=DISABLED)
+        root.update()
 
     Rec.configure(state=NORMAL)
     Choice.configure(state=NORMAL)
     winsound.MessageBeep() #сигнал о завершение
 
-#Базовые действия на всех языках
+#хоткеи на всех языках
 def _onKeyRelease(event):
     ctrl  = (event.state & 0x4) != 0
     if event.keycode==67 and ctrl and event.keysym.lower() != "c":
@@ -662,9 +671,16 @@ ProgName.grid(row = 0, column = 0, sticky = "nesw")
 Label(ProgName,text='ACR of Music',width=14,height=2,bg="#2b2f3a",fg="#bfcbd9",font=('Microsoft Sans Serif',14,'bold')).grid(row=0,column=0)
 
 #Кнопки записи, файла, настроек и инструкции
-Rec=Button(LeftMenu,bg="#304156",image=PNG_Record,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Запись c ПК',command=record,width=173,height=40)
+def record_thread():
+    record_thread = threading.Thread(target=record)
+    record_thread.start()
+Rec=tk.Button(LeftMenu,bg="#304156",image=PNG_Record,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Запись c ПК',command=record_thread,width=173,height=40)
 Rec.grid(row=0,column=0,sticky="w")
-Choice=Button(LeftMenu,bg="#304156",image=PNG_File,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Выбор файла',command=callback,width=173,height=40)
+
+def callback_thread():
+    callback_thread = threading.Thread(target=callback)
+    callback_thread.start()
+Choice=Button(LeftMenu,bg="#304156",image=PNG_File,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Выбор файла',command=callback_thread,width=173,height=40)
 Choice.grid(row=1,column=0,sticky="w")
 set=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Настройки',command=windows.setting,width=22,height=2)
 set.grid(row=3,column=0,sticky="s")
@@ -699,7 +715,11 @@ topmost.bind("<Leave>", on_leave)
 v=IntVar()
 scale = Scale(variable = v, from_ = 5.0, to = 20.0,bg='#304156',highlightbackground='#304156',activebackground='#263445',fg='#bfcbd9',troughcolor='#2b2f3a', orient = HORIZONTAL)
 scale.grid(row=0,column=1,columnspan=2,sticky="nsew")
-scale.set(S)
+try:
+    scale.set(S)
+except:
+    S=10
+    scale.set(S)
 
 #Вывод данных файла
 textline = Text(root,state=DISABLED,width=60,borderwidth=0,bg='#bfcbd9',wrap="word",font=('Microsoft Sans Serif',11))
@@ -709,10 +729,8 @@ textline.grid(row=1,rowspan=4,column=1,sticky='sen')
 def on_closing():
     if os.path.exists(f'{pathname}/Logs/output.wav'):
         os.remove(f'{pathname}/Logs/output.wav')
-    if os.path.exists(f'{pathname}/Logs/output.mp3'):
-        os.remove(f'{pathname}/Logs/output.mp3')
-    if os.path.exists(f'{pathname}/Logs/output_0.mp3'):
-        os.remove(f'{pathname}/Logs/output_0.mp3')
+    if os.path.exists(f'{pathname}/Logs/output_0.wav'):
+        os.remove(f'{pathname}/Logs/output_0.wav')
     if os.path.exists(f'{pathname}/Logs/data_file.json'):
         with open(f'{pathname}/Logs/data_file.json', "r") as write_file:
             f=json.load(write_file)
