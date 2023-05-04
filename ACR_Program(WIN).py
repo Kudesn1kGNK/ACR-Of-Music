@@ -1,16 +1,28 @@
 #-*- coding:utf-8 -*-
 #python 3.9
-import json,time,base64,hashlib,hmac,requests,os,os.path,sys,pythoncom
+import json
+import time
+import base64
+import hashlib
+import hmac
+import requests
+import os
+import sys
+import pythoncom
 import webbrowser
 import winsound
-from tkinter import filedialog,Entry
+
 from tkinter import *
-from tkinter.font import Font
 import tkinter as tk
+from tkinter import filedialog,Entry
+from tkinter.font import Font
+
 import threading
-from ffmpeg import audio
+
 from PIL import Image,ImageTk
 from io import BytesIO
+
+from ffmpeg import audio
 import numpy as np
 from scipy.io.wavfile import write
 
