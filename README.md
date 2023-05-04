@@ -1,6 +1,6 @@
 # ACR Of Music
 ____
-https://www.acrcloud.com/ — The whole program works thanks to the open API ACRCloud
+Powered by [ACRCloud](https://www.acrcloud.com/)
 
 — Starting from version 1.5.0, no actions need to be performed with the stereo mixer, recording is performed directly from the default playback device.
 ____
