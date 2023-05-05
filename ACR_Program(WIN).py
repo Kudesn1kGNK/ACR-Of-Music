@@ -481,69 +481,8 @@ def func(name):
 
             if(NumberOfMusics==0):#перестраховка на ошибку
                 raise
-
-            try:
-                for i in range(NumberOfMusics):
-                    if(NumberOfMusics==1):
-                        pass
-                    else:
-                        if(i==0):
-                            pass
-                        elif(i<=NumberOfMusics-2):
-                            if(templates['metadata']['music'][i-1]['external_ids']['isrc']==templates['metadata']['music'][i]['external_ids']['isrc']):
-                                textline.insert(1.0, '\n\n|\n\n')
-                                continue
-                            else:
-                                textline.insert(1.0, '\n\n|\n\n')
-                        elif(i==NumberOfMusics-1):
-                            if(templates['metadata']['music'][NumberOfMusics-1]['external_ids']['isrc']==templates['metadata']['music'][i-1]['external_ids']['isrc']):
-                                if(textline.get("1.0","5.0")=="\n\n|\n\n"):
-                                    textline.delete("1.0","5.0")
-                                raise
-                            else:
-                                if(textline.get("1.0","5.0")!="\n\n|\n\n"):
-                                    textline.insert(1.0, '\n\n|\n\n')
-
-                    Album=templates['metadata']['music'][i]['album']['name']
-                    Artist=templates['metadata']['music'][i]['artists'][0]['name']
-                    Title=templates['metadata']['music'][i]['title']
-                    textline.insert(1.0,f'\nАльбом — {Album}\n{Artist} — {Title}')
-
-                    global LinkId
-                    #SoundCloud ссылка в любом случае
-                    HyperLinks.HyperLinkSearch('SoundCloud',i,LinkId,Artist,Title)
-                    #VK ссылка в любом случае
-                    HyperLinks.HyperLinkSearch('VK Music',i,LinkId,Artist,Title)
-                    
-                    try:#YouTube ссылка при наличие
-                        HyperLinks.HyperLinkId('YouTube',i,LinkId)
-                    except:#YouTube ссылка если нет id
-                        HyperLinks.HyperLinkSearch('YouTube',i,LinkId,Artist,Title)
-
-                    try:#Spotify ссылка при наличие
-                        HyperLinks.HyperLinkId('Spotify',i,LinkId)
-                    except:
-                        pass
-                        
-                    try:#Deezer ссылка при наличие
-                        HyperLinks.HyperLinkId('Deezer',i,LinkId)
-                    except:
-                        pass 
-    
-                    if(textline.get(1.0,1.3)!="—"):
-                        textline.delete(1.0,1.3)
-
-                    LinkId+=1
-            except:
-                pass
-
-            textline.configure(state=NORMAL)
-            textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
-            textline.tag_add("Arrow", '1.0', '2.48')
-            textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
-            textline.configure(state=DISABLED)
-            root.update()
-
+            
+            #начало блока по нахождению обложки
             global Art,Photo_Image
             try:
                 Art.grid_forget()
@@ -608,6 +547,71 @@ def func(name):
             Art.tag_add("center", "1.0", "end")
             Art.configure(state=DISABLED)
             Art.grid(row=4,column=0)
+            #конец блока по нахождению обложки
+
+            #начало блока по всем метеданным
+            try:
+                for i in range(NumberOfMusics):
+                    if(NumberOfMusics==1):
+                        pass
+                    else:
+                        if(i==0):
+                            pass
+                        elif(i<=NumberOfMusics-2):
+                            if(templates['metadata']['music'][i-1]['external_ids']['isrc']==templates['metadata']['music'][i]['external_ids']['isrc']):
+                                textline.insert(1.0, '\n\n|\n\n')
+                                continue
+                            else:
+                                textline.insert(1.0, '\n\n|\n\n')
+                        elif(i==NumberOfMusics-1):
+                            if(templates['metadata']['music'][NumberOfMusics-1]['external_ids']['isrc']==templates['metadata']['music'][i-1]['external_ids']['isrc']):
+                                if(textline.get("1.0","5.0")=="\n\n|\n\n"):
+                                    textline.delete("1.0","5.0")
+                                raise
+                            else:
+                                if(textline.get("1.0","5.0")!="\n\n|\n\n"):
+                                    textline.insert(1.0, '\n\n|\n\n')
+
+                    Album=templates['metadata']['music'][i]['album']['name']
+                    Artist=templates['metadata']['music'][i]['artists'][0]['name']
+                    Title=templates['metadata']['music'][i]['title']
+                    textline.insert(1.0,f'\nАльбом — {Album}\n{Artist} — {Title}')
+
+                    global LinkId
+                    #SoundCloud ссылка в любом случае
+                    HyperLinks.HyperLinkSearch('SoundCloud',i,LinkId,Artist,Title)
+                    #VK ссылка в любом случае
+                    HyperLinks.HyperLinkSearch('VK Music',i,LinkId,Artist,Title)
+                    
+                    try:#YouTube ссылка при наличие
+                        HyperLinks.HyperLinkId('YouTube',i,LinkId)
+                    except:#YouTube ссылка если нет id
+                        HyperLinks.HyperLinkSearch('YouTube',i,LinkId,Artist,Title)
+
+                    try:#Spotify ссылка при наличие
+                        HyperLinks.HyperLinkId('Spotify',i,LinkId)
+                    except:
+                        pass
+                        
+                    try:#Deezer ссылка при наличие
+                        HyperLinks.HyperLinkId('Deezer',i,LinkId)
+                    except:
+                        pass 
+    
+                    if(textline.get(1.0,1.3)!="—"):
+                        textline.delete(1.0,1.3)
+
+                    LinkId+=1
+            except:
+                pass
+            #конец блока по всем метаданным
+
+            textline.configure(state=NORMAL)
+            textline.insert(1.0, '\n🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓🢓\n')
+            textline.tag_add("Arrow", '1.0', '2.48')
+            textline.tag_config('Arrow', font=('Microsoft Sans Serif',16))
+            textline.configure(state=DISABLED)
+            root.update()
 
         except:
             if(templates['status']['msg']=="No result"):
