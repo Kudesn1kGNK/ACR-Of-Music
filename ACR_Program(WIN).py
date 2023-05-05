@@ -158,13 +158,15 @@ class windows:
         setFrame=Frame(settings,bg="#304156")
         setFrame.grid(row=0,column=0,sticky = "nesw")
 
-        Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Token:').grid(row=1,column=0,sticky='w')
+        Label(setFrame,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",text='Token:')\
+            .grid(row=1,column=0,sticky='w')
         Ent3=Entry(setFrame,textvariable=textTK,width=53,bg='#263445',fg="#bfcbd9",insertbackground="#bfcbd9",font=('Microsoft Sans Serif',11))
         Ent3.grid(row=1,column=1,sticky='e')
         Ent3.delete(0, END)
         Ent3.insert(END, f'{TK}')
 
-        Label(setFrame,font=('Microsoft Sans Serif',11),width=32,bg="#304156",fg="#bfcbd9",text='Токен можно получить на этой странице:\nподробности в «Важные моменты»').grid(row=2,columnspan=2,column=0,sticky='w')
+        Label(setFrame,font=('Microsoft Sans Serif',11),width=32,bg="#304156",fg="#bfcbd9",text='Токен можно получить на этой странице:\nподробности в «Важные моменты»') \
+            .grid(row=2,columnspan=2,column=0,sticky='w')
         lb=Label(setFrame, text="https://www.ACRcloud.com",bg="#304156", fg="#409eff", cursor="hand2",font=('Microsoft Sans Serif',11))
         lb.bind('<Button-1>',lambda e: webbrowser.open_new(r"https://console.acrcloud.com/account#/developer"))
         lb.grid(row=2,columnspan=2,column=1,sticky='ne')
@@ -262,9 +264,9 @@ def ent():
         Warn.grid_forget()
         root.update()
 
-#функция записи с микшера и записывание в файл формата wav
+#функция записи и записывание в файл формата wav
 def record():
-    pythoncom.CoInitialize()
+    pythoncom.CoInitialize() #очистка для повторного импорта...
     import soundcard as sc #импортировать только отдельным потоком
 
     try:
@@ -466,7 +468,7 @@ def func(name):
         global templates
         templates = json.loads(r.text)
 
-        #вывод лога в текстовое окно приложения
+        #начало вывода лога в текстовое окно приложения
         textline.configure(state=NORMAL)
         try:
             try:#Сколько найдено песен
@@ -686,17 +688,23 @@ Label(ProgName,text='ACR of Music',width=14,height=2,bg="#2b2f3a",fg="#bfcbd9",f
 def record_thread():
     record_thread = threading.Thread(target=record)
     record_thread.start()
-Rec=tk.Button(LeftMenu,bg="#304156",image=PNG_Record,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Запись c ПК',command=record_thread,width=173,height=40)
+Rec=tk.Button(LeftMenu,bg="#304156",image=PNG_Record,compound=LEFT,activebackground='#263445',
+              fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Запись c ПК',
+              command=record_thread,width=173,height=40)
 Rec.grid(row=0,column=0,sticky="w")
 
 def callback_thread():
     callback_thread = threading.Thread(target=callback)
     callback_thread.start()
-Choice=Button(LeftMenu,bg="#304156",image=PNG_File,compound=LEFT,activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Выбор файла',command=callback_thread,width=173,height=40)
+Choice=Button(LeftMenu,bg="#304156",image=PNG_File,compound=LEFT,activebackground='#263445',
+              fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Выбор файла',
+              command=callback_thread,width=173,height=40)
 Choice.grid(row=1,column=0,sticky="w")
-set=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Настройки',command=windows.setting,width=22,height=2)
+set=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',
+           font=Helvetica,borderwidth=0,text='Настройки',command=windows.setting,width=22,height=2)
 set.grid(row=3,column=0,sticky="s")
-fq=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Важные моменты',command=windows.FAQ,width=22,height=2)
+fq=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',
+          font=Helvetica,borderwidth=0,text='Важные моменты',command=windows.FAQ,width=22,height=2)
 fq.grid(row=4,column=0,sticky="s")
 
 #поверх всех окон
@@ -708,7 +716,9 @@ def TOPMOST():
     else:
         root.attributes("-topmost",True)
         root.update()
-topmost=Checkbutton(root,bg="#304156",selectcolor="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,text='Поверх всех окон',variable=TopVar,onvalue=1, offvalue=0,command=TOPMOST,width=22,height=2)
+topmost=Checkbutton(root,bg="#304156",selectcolor="#304156",activebackground='#263445',
+                    fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,text='Поверх всех окон',
+                    variable=TopVar,onvalue=1, offvalue=0,command=TOPMOST,width=22,height=2)
 topmost.grid(row=2,column=0,sticky="s")
 
 #Бинды на ховер
@@ -725,7 +735,8 @@ topmost.bind("<Leave>", on_leave)
 
 #Ползунок длительности
 v=IntVar()
-scale = Scale(variable = v, from_ = 5.0, to = 20.0,bg='#304156',highlightbackground='#304156',activebackground='#263445',fg='#bfcbd9',troughcolor='#2b2f3a', orient = HORIZONTAL)
+scale = Scale(variable = v, from_ = 5.0, to = 20.0,bg='#304156',highlightbackground='#304156',
+              activebackground='#263445',fg='#bfcbd9',troughcolor='#2b2f3a', orient = HORIZONTAL)
 scale.grid(row=0,column=1,columnspan=2,sticky="nsew")
 try:
     scale.set(S)
