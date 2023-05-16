@@ -63,8 +63,8 @@ if os.path.exists(f'{pathname}/Logs/data_file.json'):
             "Seconds":f['Seconds'],
             "Token":f['Token']
         }
-        with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
-            json.dump(data_local, write_file)
+        # with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
+        #     json.dump(data_local, write_file)
         AK=data_local['AccessKey']
         SK=data_local['SecretKey']
         H=data_local['Host']
@@ -79,7 +79,7 @@ else:
             "Token":''
         }
     with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
-            json.dump(data_local, write_file)
+            json.dump(data_local, write_file) 
 
 LeftMenu = Frame(root, bg ="#304156",width=22)
 LeftMenu.grid(row=1,rowspan = 10, column = 0, sticky = "nesw")
@@ -93,22 +93,22 @@ def show_hand_cursor(e):
 def show_xterm_cursor(e):
     e.widget.config(cursor='xterm')
     
-#Предупреждение о несоответствие ключей минимальной характеристике
+#Предупреждение о несоответствие токена минимальной характеристике
 Warn=Label(root,text='Токен не введен\nили введен не верно',bg='#304156',fg='#ff0000',width=25,font=('Microsoft Sans Serif',9))
 if(len(TK)<1500):
     Warn.grid(row=1,column=0,sticky='s')
 
-#Переменные для сбора ключей с полей ввода
+#Переменная для токена
 textTK = StringVar()
 
 #создание доп окон
-class windows:
+class windows():
     def FAQ():
         faq=tk.Toplevel(root)
         # faq.grab_set()
         faq.attributes("-topmost",True)
         faq.resizable(width=0, height=0)
-        faq.title('Важные моменты пользования')
+        faq.title('Справочный материал')
         
         faq.grid_columnconfigure(0, weight = 1)
         faq.grid_rowconfigure(0, weight = 1)
@@ -150,7 +150,7 @@ class windows:
         settings.title('Настройка ключей')
 
         width = 480
-        heigh = 97
+        heigh = 93
         screenwidth = settings.winfo_screenwidth()
         screenheight = settings.winfo_screenheight()
         settings.geometry('%dx%d+%d+%d'%(width, heigh, (screenwidth-width)/2, (screenheight-heigh)/2))
@@ -165,11 +165,30 @@ class windows:
         Ent3.delete(0, END)
         Ent3.insert(END, f'{TK}')
 
-        Label(setFrame,font=('Microsoft Sans Serif',11),width=32,bg="#304156",fg="#bfcbd9",text='Токен можно получить на этой странице:\nподробности в «Важные моменты»') \
-            .grid(row=2,columnspan=2,column=0,sticky='w')
-        lb=Label(setFrame, text="https://www.ACRcloud.com",bg="#304156", fg="#409eff", cursor="hand2",font=('Microsoft Sans Serif',11))
-        lb.bind('<Button-1>',lambda e: webbrowser.open_new(r"https://console.acrcloud.com/account#/developer"))
-        lb.grid(row=2,columnspan=2,column=1,sticky='ne')
+        # About = Label(setFrame,font=('Microsoft Sans Serif',11),width=32,bg="#304156",fg="#bfcbd9",text='Токен можно получить на этой странице:\nподробности в «Справка»')
+        About=Text(setFrame,state=NORMAL,width=32,height=2 ,font=('Microsoft Sans Serif',11),bg="#304156",fg="#bfcbd9",wrap='word',borderwidth=0)
+        About.grid(row=2,columnspan=3,column=0,sticky='wne')
+        text = 'Токен можно получить на этой странице:https://www.ACRcloud.com\n        подробности в «Справка»'
+        About.insert(1.0,text)
+
+        About.tag_add(f'Lb', '1.38', '1.62')
+        About.tag_bind(f'Lb', '<Enter>', show_hand_cursor)
+        About.tag_bind(f'Lb', '<Leave>', show_xterm_cursor)
+        About.tag_config(f'Lb', foreground='#409eff', underline=True)
+        About.tag_bind(f'Lb','<Button-1>',lambda e: webbrowser.open_new(r"https://console.acrcloud.com/account#/developer"))
+
+        About.tag_add(f'Sp', '2.22', '2.31')
+        About.tag_bind(f'Sp', '<Enter>', show_hand_cursor)
+        About.tag_bind(f'Sp', '<Leave>', show_xterm_cursor)
+        About.tag_config(f'Sp', foreground='#409eff', underline=True)
+        About.tag_bind(f'Sp', '<Button-1>',lambda e:windows.FAQ())
+
+        root.update()
+        About.configure(state=DISABLED)
+
+        # lb=Label(setFrame, text="https://www.ACRcloud.com",bg="#304156", fg="#409eff", cursor="hand2",font=('Microsoft Sans Serif',11))
+        # lb.bind('<Button-1>',lambda e: webbrowser.open_new(r"https://console.acrcloud.com/account#/developer"))
+        # lb.grid(row=2,columnspan=2,column=1,sticky='ne')
 
         global Token_Warn
         Token_Warn=Label(setFrame,text='Авторизация не прошла',bg='#304156',fg='#ff0000',font=('Microsoft Sans Serif',9))
@@ -178,7 +197,7 @@ class windows:
         Token_Successful=Label(setFrame,text='Авторизация успешна',bg='#304156',fg='#008000',font=('Microsoft Sans Serif',9))
 
         enter=Button(setFrame,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Подтвердить',command=ent)
-        enter.grid(row=4,column=0,columnspan=2,sticky='we')
+        enter.grid(row=3,column=0,columnspan=2,sticky='wne')
         enter.bind("<Enter>", on_enter)
         enter.bind("<Leave>", on_leave)
 
@@ -325,6 +344,7 @@ def callback():
     seconds = v.get()
     name = filedialog.askopenfilename(filetypes=[('Media','*.mp3 *.wav *.wma *.amr *.ogg *.ape *.acc *.spx *.m4a *.mp4 *.FLAC')])
 
+    # Проверка успешности выбора
     try:
         f = open(name, 'r')
         f.close()
@@ -333,6 +353,12 @@ def callback():
         Choice.configure(state=NORMAL)
         return
 
+    try:
+        Art.grid_forget()
+        Photo_Image.grid_forget()
+    except:
+        pass
+    
     textline.configure(state=NORMAL)
     textline.insert(1.0, '🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑🢑\n')
     textline.tag_add("Arrow", '1.0', '2.48')
@@ -345,6 +371,7 @@ def callback():
     if os.path.exists(f'{pathname}/Logs/output_0.wav'):
         pass
     else:
+        #Обьявление пользователю что файл не содержит аудио дорожку
         try:
             Art.grid_forget()
             Photo_Image.grid_forget()
@@ -380,11 +407,12 @@ data_type = "audio"
 signature_version = "1"
 timestamp = time.time()
 
+# подготовка API для получения обложки
 requrl_meta = "https://eu-api-v2.acrcloud.com/api/external-metadata/tracks"
-Token=TK
+Token=TK 
 
-LinkId=0
-#создание ссылок
+LinkId=0 # обьявление переменной под первый тег ссылки
+# создание ссылок
 class HyperLinks():
     def HyperLinkId(ServiceName,Number,LinkId):
         if(ServiceName=='YouTube'):
@@ -410,7 +438,7 @@ class HyperLinks():
         elif(ServiceName=='Spotify'):
             textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://open.spotify.com/track/{Spotify_id}'))
         else:
-            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.deezer.com/us/track/{Deezer_id}'))
+            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.deezer.com/track/{Deezer_id}'))
 
     def HyperLinkSearch(ServiceName,Number,LinkId,Artist,Title):
         textline.insert(1.0, f' — {ServiceName}')
@@ -433,6 +461,8 @@ class HyperLinks():
 
 #Главная функция реквестов и вывода
 def func(name):
+    global Art,Photo_Image
+
     string_to_sign = http_method + "\n" + http_url + "\n" + access_key + "\n" + data_type + "\n" + signature_version + "\n" + str(timestamp)
     sign = base64.b64encode(hmac.new(access_secret.encode('ascii'), string_to_sign.encode('ascii'),digestmod=hashlib.sha1).digest()).decode('ascii')
     global sample_bytes
@@ -458,12 +488,14 @@ def func(name):
         if('Обрезаем аудио\видео' in textline.get('1.0','4.25')):
             textline.delete(1.0, 4.25)
         textline.insert(1.0, f'\n\nПоиск...')
+        try:
+            Art.grid_forget()
+            Photo_Image.grid_forget()
+        except:
+            pass
         textline.configure(state=DISABLED)
         r = requests.post(requrl, files=files, data=data)
         r.encoding = "utf-8"
-        textline.configure(state=NORMAL)
-        textline.delete(1.0, 3.8)
-        textline.configure(state=DISABLED)
 
         global templates
         templates = json.loads(r.text)
@@ -471,62 +503,34 @@ def func(name):
         #начало вывода лога в текстовое окно приложения
         textline.configure(state=NORMAL)
         try:
-            try:#Сколько найдено песен
-                NumberOfMusics=0
-                for i in range(100):
-                    templates['metadata']['music'][i]['title']
-                    NumberOfMusics+=1
-            except:
-                i=0
-
+            # считаем сколько всего композиций и проверяем есть ли они
+            NumberOfMusics = len(templates['metadata']['music'])
             if(NumberOfMusics==0):#перестраховка на ошибку
                 raise
             
             #начало блока по нахождению обложки
-            global Art,Photo_Image
             try:
-                Art.grid_forget()
-                Photo_Image.grid_forget()
-            except:
-                pass
-
-            try:
-                params = {'isrc': templates['metadata']['music'][0]['external_ids']['isrc']}
                 header={"Authorization": f"Bearer {Token}"}
-                r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
-                templates_meta = json.loads(r_meta.text)
-                try:
-                    try:
-                        image_url=templates_meta['data'][0]['album']['covers']['medium']
-                    except:
-                        image_url=templates_meta['data'][0]['album']['cover']
-                except:
-                    params = {'query': f'{Artist} — {Title}'}
-                    header={"Authorization": f"Bearer {Token}"}
+
+                for key in range(len(templates['metadata']['music'])):
+                    #получили метаданные
+                    params = {'isrc': templates['metadata']['music'][key]['external_ids']['isrc']}
                     r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
                     templates_meta = json.loads(r_meta.text)
+
+                    if templates_meta['data'][0]['album']['covers']['medium']:
+                        raise
+                    elif templates_meta['data'][0]['album']['cover']:
+                        raise
+                    else:
+                        continue
             except:
                 try:
-                    if(NumberOfMusics>=2):
-                        params = {'isrc': templates['metadata']['music'][1]['external_ids']['isrc']}
-                        header={"Authorization": f"Bearer {Token}"}
-                        r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
-                        templates_meta = json.loads(r_meta.text)
-                        try:
-                            try:
-                                image_url=templates_meta['data'][0]['album']['covers']['medium']
-                            except:
-                                image_url=templates_meta['data'][0]['album']['cover']
-                        except:
-                            params = {'query': f'{Artist} — {Title}'}
-                            header={"Authorization": f"Bearer {Token}"}
-                            r_meta = requests.get(requrl_meta,params=params,headers=header,json=True)
-                            templates_meta = json.loads(r_meta.text)
-                        
-                except:
                     Art.grid_forget()
                     Photo_Image.grid_forget()
                     root.update()
+                except:
+                    pass
             try:
                 try:
                     image_url=templates_meta['data'][0]['album']['covers']['medium']
@@ -549,28 +553,23 @@ def func(name):
             Art.grid(row=4,column=0)
             #конец блока по нахождению обложки
 
+            textline.delete(1.0, 3.8)#удаление textline поиск
+
+            result = []
             #начало блока по всем метеданным
             try:
                 for i in range(NumberOfMusics):
                     if(NumberOfMusics==1):
                         pass
                     else:
-                        if(i==0):
-                            pass
-                        elif(i<=NumberOfMusics-2):
-                            if(templates['metadata']['music'][i-1]['external_ids']['isrc']==templates['metadata']['music'][i]['external_ids']['isrc']):
+                        for key in range(len(templates['metadata']['music'])):
+                            if(textline.get("1.0","5.0")=="\n\n|\n\n"):
+                                    textline.delete("1.0","5.0")
+                            if templates['metadata']['music'][key]['external_ids']['isrc'] in result:
                                 textline.insert(1.0, '\n\n|\n\n')
                                 continue
                             else:
-                                textline.insert(1.0, '\n\n|\n\n')
-                        elif(i==NumberOfMusics-1):
-                            if(templates['metadata']['music'][NumberOfMusics-1]['external_ids']['isrc']==templates['metadata']['music'][i-1]['external_ids']['isrc']):
-                                if(textline.get("1.0","5.0")=="\n\n|\n\n"):
-                                    textline.delete("1.0","5.0")
-                                raise
-                            else:
-                                if(textline.get("1.0","5.0")!="\n\n|\n\n"):
-                                    textline.insert(1.0, '\n\n|\n\n')
+                                result.append(templates['metadata']['music'][key]['external_ids']['isrc'])
 
                     Album=templates['metadata']['music'][i]['album']['name']
                     Artist=templates['metadata']['music'][i]['artists'][0]['name']
@@ -602,7 +601,8 @@ def func(name):
                         textline.delete(1.0,1.3)
 
                     LinkId+=1
-            except:
+            except Exception as e:
+                print(e)
                 pass
             #конец блока по всем метаданным
 
@@ -614,6 +614,7 @@ def func(name):
             root.update()
 
         except:
+            textline.delete(1.0, 3.8)#удаление textline поиск
             if(templates['status']['msg']=="No result"):
                 textline.insert(1.0,'Нет результа, попробуйте ещё раз')
             elif(templates['status']['msg']=="invalid signature"):
@@ -704,11 +705,13 @@ Choice=Button(LeftMenu,bg="#304156",image=PNG_File,compound=LEFT,activebackgroun
               fg="#bfcbd9",activeforeground='#bfcbd9',font=Helvetica,borderwidth=0,text='Выбор файла',
               command=callback_thread,width=173,height=40)
 Choice.grid(row=1,column=0,sticky="w")
+
+p=windows()
 set=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',
            font=Helvetica,borderwidth=0,text='Настройки',command=windows.setting,width=22,height=2)
 set.grid(row=3,column=0,sticky="s")
 fq=Button(root,bg="#304156",activebackground='#263445',fg="#bfcbd9",activeforeground='#bfcbd9',
-          font=Helvetica,borderwidth=0,text='Важные моменты',command=windows.FAQ,width=22,height=2)
+          font=Helvetica,borderwidth=0,text='Справка',command=windows.FAQ,width=22,height=2)
 fq.grid(row=4,column=0,sticky="s")
 
 #поверх всех окон
@@ -764,6 +767,7 @@ def on_closing():
         f['Seconds']=v.get()
         with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
             json.dump(f, write_file)
+    
     raise SystemExit()
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
