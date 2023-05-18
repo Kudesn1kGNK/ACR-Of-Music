@@ -39,7 +39,7 @@ root.title('ACR Recognition')
 ico=b'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAACRUlEQVR42sWXz0tUURTH3/9U0Q+SGEhq4QgVRUERBC0Kghb9oIVBMERFtYg21UqoRS2CcqMLBxVcCM68GXVm1HH8MTrq6Azq/PSNPr9ePFePzxkdns9358CXd++Zd+75nHPv8LjaqUFoUl4hv1BeCC4pL3O07ObVgJ2BTwiK5QMEgKRBg+QVAPDbCXqeAIomEC+dCIBfACBnJ+jPEvbsfNAxQE6zGzRZZoCWIccAsAVwNQyL3YspBmibhMWexhUD/MvAYm+mFQOkDEpsmPT8OqcQoHWYK+9doeevtEIA3zQlTZSB7/M07swqBOjKUtLfS8D7JI0Hcvx7cwho0l0COC2UqVDSZxPAiwSNJ0rWf8iXOZcAbkYooSnk0YGHYzTPbvA7HRkxrwAXgi4AfJAtjxVpfn2Egc4EyJc2yPcx6QJAjzz17Ys094SwZ81h4MYIz9MV4FzgxACowrVNWvxJnP2VLfLdjgDvZmCxtzM11hG6HwOuDR8CcDdaW6/kgdvYAi7y/opKyf9oHOiWHSpI0NR69Tr9a7xtDMgAdU3PW8mjRfK/npIdkuOSiTpG79sG+DG/H4Ar6sxyh5qCwM9F1LUFowaARz9K1Qfrv/wwlWXFQdmhs4Ha8X+X6b11E3iZqAKwr/YDlX5L1Y+5EgYu6TR2DPB5FhZ7MGor3jlA2xQnL25S65UCPB5ngL5V8ikFuBNlgE9JZwC54wReDgEpg071rcixAfJ8MVEuvph4G3w1a9zlVEgjAFKr3I6Ci0kLMod3N+82PcJ9HGP605gAAAAASUVORK5CYII='
 root.tk.call('wm', 'iconphoto', root, PhotoImage(data=ico))
 
-#Объявление переменной под токен
+#Объявление переменных под ключи
 AK=''
 SK=''
 H=''
@@ -63,8 +63,6 @@ if os.path.exists(f'{pathname}/Logs/data_file.json'):
             "Seconds":f['Seconds'],
             "Token":f['Token']
         }
-        # with open(f'{pathname}/Logs/data_file.json', "w") as write_file:
-        #     json.dump(data_local, write_file)
         AK=data_local['AccessKey']
         SK=data_local['SecretKey']
         H=data_local['Host']
@@ -414,50 +412,57 @@ Token=TK
 LinkId=0 # обьявление переменной под первый тег ссылки
 # создание ссылок
 class HyperLinks():
-    def HyperLinkId(ServiceName,Number,LinkId):
-        if(ServiceName=='YouTube'):
-            Youtube_id=templates['metadata']['music'][Number]['external_metadata']['youtube']['vid']
-        elif(ServiceName=='Spotify'):
-            Spotify_id=templates['metadata']['music'][Number]['external_metadata']['spotify']['track']['id']
-        else:
-            Deezer_id=templates['metadata']['music'][Number]['external_metadata']['deezer']['track']['id']
-        
-        textline.insert(1.0, f' — {ServiceName}')
-        if(ServiceName=='YouTube'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.10') 
-        elif(ServiceName=='Spotify'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.10')
-        else:
-            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.9')
-        
-        textline.tag_config(f'{ServiceName}_Link_{Number}{LinkId}', foreground='#409eff', underline=True)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Enter>', show_hand_cursor)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Leave>', show_xterm_cursor)
-        if(ServiceName=='YouTube'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.youtube.com/watch?v={Youtube_id}') )
-        elif(ServiceName=='Spotify'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://open.spotify.com/track/{Spotify_id}'))
-        else:
-            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.deezer.com/track/{Deezer_id}'))
+    def __init__(self,S, N, L, A='', T=''):
+        self.ServiceName = S
+        self.Number = N
+        self.LinkId = L
+        self.Artist = A
+        self.Title =  T
 
-    def HyperLinkSearch(ServiceName,Number,LinkId,Artist,Title):
-        textline.insert(1.0, f' — {ServiceName}')
-        if(ServiceName=='SoundCloud'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.13')
-        elif(ServiceName=='VK Music'):
-            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.11')
+    def HyperLinkId(self):
+        if(self.ServiceName=='YouTube'):
+            Youtube_id=templates['metadata']['music'][self.Number]['external_metadata']['youtube']['vid']
+        elif(self.ServiceName=='Spotify'):
+            Spotify_id=templates['metadata']['music'][self.Number]['external_metadata']['spotify']['track']['id']
         else:
-            textline.tag_add(f'{ServiceName}_Link_{Number}{LinkId}', '1.3', '1.10')
+            Deezer_id=templates['metadata']['music'][self.Number]['external_metadata']['deezer']['track']['id']
         
-        textline.tag_config(f'{ServiceName}_Link_{Number}{LinkId}', foreground='#409eff', underline=True)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Enter>', show_hand_cursor)
-        textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Leave>', show_xterm_cursor)
-        if(ServiceName=='SoundCloud'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://soundcloud.com/search?q={Artist} {Title}'))
-        elif(ServiceName=='VK Music'):
-            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://vk.com/audio?q={Artist} {Title}'))
+        textline.insert(1.0, f' — {self.ServiceName}')
+        if(self.ServiceName=='YouTube'):
+            textline.tag_add(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '1.3', '1.10') 
+        elif(self.ServiceName=='Spotify'):
+            textline.tag_add(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '1.3', '1.10')
         else:
-            textline.tag_bind(f'{ServiceName}_Link_{Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://www.youtube.com/results?search_query={Artist} {Title}'))
+            textline.tag_add(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '1.3', '1.9')
+        
+        textline.tag_config(f'{self.ServiceName}_Link_{self.Number}{LinkId}', foreground='#409eff', underline=True)
+        textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Enter>', show_hand_cursor)
+        textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Leave>', show_xterm_cursor)
+        if(self.ServiceName=='YouTube'):
+            textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.youtube.com/watch?v={Youtube_id}') )
+        elif(self.ServiceName=='Spotify'):
+            textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://open.spotify.com/track/{Spotify_id}'))
+        else:
+            textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Button-1>',lambda e: webbrowser.open(f'https://www.deezer.com/track/{Deezer_id}'))
+
+    def HyperLinkSearch(self):
+        textline.insert(1.0, f' — {self.ServiceName}')
+        if(self.ServiceName=='SoundCloud'):
+            textline.tag_add(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '1.3', '1.13')
+        elif(self.ServiceName=='VK Music'):
+            textline.tag_add(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '1.3', '1.11')
+        else:
+            textline.tag_add(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '1.3', '1.10')
+        
+        textline.tag_config(f'{self.ServiceName}_Link_{self.Number}{LinkId}', foreground='#409eff', underline=True)
+        textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Enter>', show_hand_cursor)
+        textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Leave>', show_xterm_cursor)
+        if(self.ServiceName=='SoundCloud'):
+            textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://soundcloud.com/search?q={self.Artist} {self.Title}'))
+        elif(self.ServiceName=='VK Music'):
+            textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://vk.com/audio?q={self.Artist} {self.Title}'))
+        else:
+            textline.tag_bind(f'{self.ServiceName}_Link_{self.Number}{LinkId}', '<Button-1>',  lambda e: webbrowser.open(f'https://www.youtube.com/results?search_query={self.Artist} {self.Title}'))
 
 #Главная функция реквестов и вывода
 def func(name):
@@ -558,13 +563,13 @@ def func(name):
             result = []
             #начало блока по всем метеданным
             try:
-                for i in range(NumberOfMusics):
+                for i in range(NumberOfMusics): 
                     if(NumberOfMusics==1):
                         pass
                     else:
                         for key in range(len(templates['metadata']['music'])):
                             if(textline.get("1.0","5.0")=="\n\n|\n\n"):
-                                    textline.delete("1.0","5.0")
+                                textline.delete("1.0","5.0")
                             if templates['metadata']['music'][key]['external_ids']['isrc'] in result:
                                 textline.insert(1.0, '\n\n|\n\n')
                                 continue
@@ -578,22 +583,22 @@ def func(name):
 
                     global LinkId
                     #SoundCloud ссылка в любом случае
-                    HyperLinks.HyperLinkSearch('SoundCloud',i,LinkId,Artist,Title)
+                    HyperLinks('SoundCloud',i,LinkId,Artist,Title).HyperLinkSearch()
                     #VK ссылка в любом случае
-                    HyperLinks.HyperLinkSearch('VK Music',i,LinkId,Artist,Title)
+                    HyperLinks('VK Music',i,LinkId,Artist,Title).HyperLinkSearch()
                     
                     try:#YouTube ссылка при наличие
-                        HyperLinks.HyperLinkId('YouTube',i,LinkId)
+                        HyperLinks('YouTube',i,LinkId).HyperLinkId()
                     except:#YouTube ссылка если нет id
-                        HyperLinks.HyperLinkSearch('YouTube',i,LinkId,Artist,Title)
+                        HyperLinks('YouTube',i,LinkId,Artist,Title).HyperLinkSearch()
 
                     try:#Spotify ссылка при наличие
-                        HyperLinks.HyperLinkId('Spotify',i,LinkId)
+                        HyperLinks('Spotify',i,LinkId).HyperLinkId()
                     except:
                         pass
                         
                     try:#Deezer ссылка при наличие
-                        HyperLinks.HyperLinkId('Deezer',i,LinkId)
+                        HyperLinks('Deezer',i,LinkId).HyperLinkId()
                     except:
                         pass 
     
